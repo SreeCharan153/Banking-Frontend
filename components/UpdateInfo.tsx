@@ -44,7 +44,7 @@ export function UpdateInfo() {
         pin: parseInt(mobileForm.pin),
         nmobile: mobileForm.nmobile,
         omobile: mobileForm.omobile,
-      });
+      }) as { message: string };
       setMobileSuccess(result.message);
       setMobileForm({ h: '', pin: '', nmobile: '', omobile: '' });
     } catch (err) {
@@ -66,7 +66,7 @@ export function UpdateInfo() {
         pin: parseInt(emailForm.pin),
         nemail: emailForm.nemail,
         oemail: emailForm.oemail,
-      });
+      }) as { message: string };
       setEmailSuccess(result.message);
       setEmailForm({ h: '', pin: '', nemail: '', oemail: '' });
     } catch (err) {

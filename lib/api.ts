@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000'; // Update this to your API URL
+const API_BASE_URL = 'NEXT_PUBLIC_API_URL'; // Update this to your API URL
 
 export class ATMApiClient {
   private async makeRequest<T>(

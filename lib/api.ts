@@ -32,7 +32,7 @@ export class ATMApiClient {
 
   async verifyPassword(password: string) {
     const params = new URLSearchParams({ pas: password });
-    const response = await fetch(`${API_BASE_URL}/?${params}`, {
+    const response = await fetch(`${API_BASE_URL}/check-password?${params}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

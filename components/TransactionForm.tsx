@@ -42,8 +42,8 @@ export function TransactionForm({ type }: TransactionFormProps) {
       };
 
       const result = isDeposit
-        ? await atmApi.deposit(transactionData)
-        : await atmApi.withdraw(transactionData);
+        ? await atmApi.deposit(transactionData) as { message: string }
+        : await atmApi.withdraw(transactionData) as { message: string };
 
       setSuccess(result.message);
       setFormData({ h: '', pin: '', amount: '' });

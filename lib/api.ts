@@ -1,5 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Update this to your API URL
-
+//const API_BASE_URL = 'http://localhost:8000';
 export class ATMApiClient {
   private async makeRequest<T>(
     endpoint: string,
@@ -32,7 +32,7 @@ export class ATMApiClient {
 
   async verifyPassword(password: string) {
     const params = new URLSearchParams({ pas: password });
-    const response = await fetch(`${API_BASE_URL}/check-password?${params}`, {
+    const response = await fetch(`${API_BASE_URL}/check-password/?${params}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,6 +81,16 @@ export class ATMApiClient {
     oemail: string;
   }) {
     return this.makeRequest('/update-email/', data);
+  }
+
+  async transfer(data: { h: string; toAccount: string; amount: number; pin: number }) {
+    const transferData = {
+      h: data.h,
+      r: data.toAccount,
+      amount: data.amount,
+      pin: data.pin
+    };
+    return this.makeRequest('/transfor/', transferData);
   }
 }
 

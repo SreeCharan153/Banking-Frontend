@@ -24,6 +24,11 @@ export interface UpdateEmailRequest extends AccountBase {
   oemail: string;
 }
 
+export interface TransferRequest extends AccountBase {
+  r: string;
+  amount: number;
+}
+
 export interface ApiResponse {
   message: string;
 }

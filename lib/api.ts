@@ -1,5 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Update this to your API URL
-//const API_BASE_URL = 'http://localhost:8000';
+//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Update this to your API URL
+const API_BASE_URL = 'http://localhost:8000';
 export class ATMApiClient {
   private async makeRequest<T>(
     endpoint: string,
@@ -30,22 +30,34 @@ export class ATMApiClient {
     }
   }
 
-  async verifyPassword(password: string) {
-    const params = new URLSearchParams({ pas: password });
-    const response = await fetch(`${API_BASE_URL}/check-password/?${params}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+  async checkPassword(accountNumber: string, password: string) {
+    // Use the check-password endpoint to verify account and password
+    const params = new URLSearchParams({
+      h: accountNumber,
+      pas: password
     });
-
-    const result = await response.json();
     
-    if (!response.ok) {
-      throw new Error(result.detail || 'Password verification failed');
-    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/check-password/?${params}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    return result;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.detail || 'Authentication failed');
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Network error occurred');
+    }
   }
 
   async deposit(data: { h: string; amount: number; pin: number }) {

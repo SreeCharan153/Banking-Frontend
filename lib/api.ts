@@ -1,5 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Update this to your API URL
-//const API_BASE_URL = 'http://localhost:8000';
+//const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Update this to your API URL
+const API_BASE_URL = 'http://localhost:8000';
 export class ATMApiClient {
   private async makeRequest<T>(
     endpoint: string,
@@ -103,6 +103,10 @@ export class ATMApiClient {
       pin: data.pin
     };
     return this.makeRequest('/transfor/', transferData);
+  }
+
+  async enquiry(data: { h: string; pin: number }) {
+    return this.makeRequest('/enquiry/', data);
   }
 }
 

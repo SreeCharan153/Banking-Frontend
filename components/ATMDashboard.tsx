@@ -5,6 +5,7 @@ import { CreateAccount } from './CreateAccount';
 import { TransactionForm } from './TransactionForm';
 import { UpdateInfo } from './UpdateInfo';
 import { TransferForm } from './TransferForm';
+import { EnquiryForm } from './EnquiryForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -15,10 +16,11 @@ import {
   Settings,
   Banknote,
   Shield,
-  Users
+  Users,
+  Search
 } from 'lucide-react';
 
-type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update';
+type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update' | 'enquiry';
 
 export function ATMDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -58,6 +60,13 @@ export function ATMDashboard() {
       icon: Settings,
       color: 'bg-blue-500 hover:bg-blue-600',
       description: 'Update mobile or email'
+    },
+    {
+      id: 'enquiry' as const,
+      label: 'Balance Enquiry',
+      icon: Search,
+      color: 'bg-indigo-500 hover:bg-indigo-600',
+      description: 'Check account balance'
     }
   ];
 
@@ -73,9 +82,11 @@ export function ATMDashboard() {
         return <TransferForm />;
       case 'update':
         return <UpdateInfo />;
+      case 'enquiry':
+        return <EnquiryForm />;
       default:
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (

@@ -6,6 +6,7 @@ import { TransactionForm } from './TransactionForm';
 import { UpdateInfo } from './UpdateInfo';
 import { TransferForm } from './TransferForm';
 import { EnquiryForm } from './EnquiryForm';
+import { ChangePinForm } from './ChangePinForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -17,10 +18,11 @@ import {
   Banknote,
   Shield,
   Users,
-  Search
+  Search,
+  KeyRound
 } from 'lucide-react';
 
-type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update' | 'enquiry';
+type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update' | 'enquiry' | 'changepin';
 
 export function ATMDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -67,6 +69,13 @@ export function ATMDashboard() {
       icon: Search,
       color: 'bg-indigo-500 hover:bg-indigo-600',
       description: 'Check account balance'
+    },
+    {
+      id: 'changepin' as const,
+      label: 'Change PIN',
+      icon: KeyRound,
+      color: 'bg-orange-500 hover:bg-orange-600',
+      description: 'Update account PIN'
     }
   ];
 
@@ -84,6 +93,8 @@ export function ATMDashboard() {
         return <UpdateInfo />;
       case 'enquiry':
         return <EnquiryForm />;
+      case 'changepin':
+        return <ChangePinForm />;
       default:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">

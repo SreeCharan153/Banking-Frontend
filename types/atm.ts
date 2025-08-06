@@ -29,6 +29,10 @@ export interface TransferRequest extends AccountBase {
   amount: number;
 }
 
+export interface ChangePinRequest extends AccountBase {
+  newpin: string;
+}
+
 export interface ApiResponse {
   message: string;
 }

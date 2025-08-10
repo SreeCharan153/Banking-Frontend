@@ -1,5 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // Update this to your API URL
-//const API_BASE_URL = 'http://localhost:8000';
+//const API_BASE_URL = 'http://localhost:8000'; // Update this to your API URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 export class ATMApiClient {
   private async makeRequest<T>(
     endpoint: string,
@@ -61,11 +61,11 @@ export class ATMApiClient {
   }
 
   async deposit(data: { h: string; amount: number; pin: number }) {
-    return this.makeRequest('/deposit/', data);
+    return this.makeRequest('/deposit/', { h: data.h, amount: data.amount, pin: data.pin.toString() });
   }
 
   async withdraw(data: { h: string; amount: number; pin: number }) {
-    return this.makeRequest('/withdraw/', data);
+    return this.makeRequest('/withdraw/', { h: data.h, amount: data.amount, pin: data.pin.toString() });
   }
 
   async createAccount(data: {
@@ -79,20 +79,19 @@ export class ATMApiClient {
 
   async updateMobile(data: {
     h: string;
-    pin: number;
     nmobile: string;
     omobile: string;
   }) {
-    return this.makeRequest('/update-mobile/', data);
+    return this.makeRequest('/update-mobile/', { h: data.h, nmobile: data.nmobile, omobile: data.omobile });
   }
+
 
   async updateEmail(data: {
     h: string;
-    pin: number;
     nemail: string;
     oemail: string;
   }) {
-    return this.makeRequest('/update-email/', data);
+    return this.makeRequest('/update-email/', { h: data.h, nemail: data.nemail, oemail: data.oemail });
   }
 
   async transfer(data: { h: string; toAccount: string; amount: number; pin: number }) {
@@ -106,11 +105,11 @@ export class ATMApiClient {
   }
 
   async enquiry(data: { h: string; pin: number }) {
-    return this.makeRequest('/enquiry/', data);
+    return this.makeRequest('/enquiry/', { h: data.h, pin: data.pin.toString() });
   }
 
   async changePin(data: { h: string; pin: number; newpin: string }) {
-    return this.makeRequest('/change-pin/', data);
+    return this.makeRequest('/change-pin/', { h: data.h, pin: data.pin.toString(), newpin: data.newpin });
   }
 }
 

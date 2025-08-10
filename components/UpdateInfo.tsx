@@ -13,14 +13,12 @@ import { atmApi } from '@/lib/api';
 export function UpdateInfo() {
   const [mobileForm, setMobileForm] = useState({
     h: '',
-    pin: '',
     nmobile: '',
     omobile: '',
   });
 
   const [emailForm, setEmailForm] = useState({
     h: '',
-    pin: '',
     nemail: '',
     oemail: '',
   });
@@ -41,12 +39,11 @@ export function UpdateInfo() {
     try {
       const result = await atmApi.updateMobile({
         h: mobileForm.h,
-        pin: parseInt(mobileForm.pin),
         nmobile: mobileForm.nmobile,
         omobile: mobileForm.omobile,
-      }) as { message: string };
-      setMobileSuccess(result.message);
-      setMobileForm({ h: '', pin: '', nmobile: '', omobile: '' });
+      });
+      setMobileSuccess((result as { message: string }).message);
+      setMobileForm({ h: '', nmobile: '', omobile: '' });
     } catch (err) {
       setMobileError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -63,12 +60,11 @@ export function UpdateInfo() {
     try {
       const result = await atmApi.updateEmail({
         h: emailForm.h,
-        pin: parseInt(emailForm.pin),
         nemail: emailForm.nemail,
         oemail: emailForm.oemail,
-      }) as { message: string };
-      setEmailSuccess(result.message);
-      setEmailForm({ h: '', pin: '', nemail: '', oemail: '' });
+      });
+      setEmailSuccess((result as { message: string }).message);
+      setEmailForm({ h: '', nemail: '', oemail: '' });
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -99,7 +95,7 @@ export function UpdateInfo() {
 
           <TabsContent value="mobile">
             <form onSubmit={handleMobileSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="m-account" className="text-sm font-medium">
                     Account Number
@@ -114,22 +110,8 @@ export function UpdateInfo() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="m-pin" className="text-sm font-medium">
-                    PIN
-                  </Label>
-                  <Input
-                    id="m-pin"
-                    type="password"
-                    value={mobileForm.pin}
-                    onChange={(e) => setMobileForm(prev => ({ ...prev, pin: e.target.value }))}
-                    placeholder="••••"
-                    maxLength={4}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                   <Label htmlFor="old-mobile" className="text-sm font-medium">
                     Current Mobile
                   </Label>
@@ -144,7 +126,7 @@ export function UpdateInfo() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                  <div className="space-y-2">
                   <Label htmlFor="new-mobile" className="text-sm font-medium">
                     New Mobile
                   </Label>
@@ -157,6 +139,7 @@ export function UpdateInfo() {
                     maxLength={10}
                     required
                   />
+                </div>
                 </div>
               </div>
 
@@ -193,7 +176,7 @@ export function UpdateInfo() {
 
           <TabsContent value="email">
             <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="e-account" className="text-sm font-medium">
                     Account Number
@@ -208,22 +191,8 @@ export function UpdateInfo() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="e-pin" className="text-sm font-medium">
-                    PIN
-                  </Label>
-                  <Input
-                    id="e-pin"
-                    type="password"
-                    value={emailForm.pin}
-                    onChange={(e) => setEmailForm(prev => ({ ...prev, pin: e.target.value }))}
-                    placeholder="••••"
-                    maxLength={4}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                   <Label htmlFor="old-email" className="text-sm font-medium">
                     Current Email
                   </Label>
@@ -237,7 +206,7 @@ export function UpdateInfo() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                  <div className="space-y-2">
                   <Label htmlFor="new-email" className="text-sm font-medium">
                     New Email
                   </Label>
@@ -249,6 +218,7 @@ export function UpdateInfo() {
                     placeholder="new@example.com"
                     required
                   />
+                </div>
                 </div>
               </div>
 

@@ -7,6 +7,7 @@ import { UpdateInfo } from './UpdateInfo';
 import { TransferForm } from './TransferForm';
 import { EnquiryForm } from './EnquiryForm';
 import { ChangePinForm } from './ChangePinForm';
+import { TransactionHistory } from './TransactionHistory';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -19,10 +20,11 @@ import {
   Shield,
   Users,
   Search,
-  KeyRound
+  KeyRound,
+  History
 } from 'lucide-react';
 
-type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update' | 'enquiry' | 'changepin';
+type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update' | 'enquiry' | 'changepin' | 'history';
 
 export function ATMDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -76,6 +78,13 @@ export function ATMDashboard() {
       icon: KeyRound,
       color: 'bg-orange-500 hover:bg-orange-600',
       description: 'Update account PIN'
+    },
+    {
+      id: 'history' as const,
+      label: 'Transaction History',
+      icon: History,
+      color: 'bg-slate-500 hover:bg-slate-600',
+      description: 'View transaction history'
     }
   ];
 
@@ -95,6 +104,8 @@ export function ATMDashboard() {
         return <EnquiryForm />;
       case 'changepin':
         return <ChangePinForm />;
+      case 'history':
+        return <TransactionHistory />;
       default:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">

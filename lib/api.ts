@@ -1,5 +1,7 @@
+import {HistoryResponse} from '@/types/atm';
 //const API_BASE_URL = 'http://localhost:8000'; // Update this to your API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export class ATMApiClient {
   private async makeRequest<T>(
     endpoint: string,
@@ -85,7 +87,6 @@ export class ATMApiClient {
     return this.makeRequest('/update-mobile/', { h: data.h, nmobile: data.nmobile, omobile: data.omobile });
   }
 
-
   async updateEmail(data: {
     h: string;
     nemail: string;
@@ -93,6 +94,8 @@ export class ATMApiClient {
   }) {
     return this.makeRequest('/update-email/', { h: data.h, nemail: data.nemail, oemail: data.oemail });
   }
+
+
 
   async transfer(data: { h: string; toAccount: string; amount: number; pin: number }) {
     const transferData = {
@@ -111,6 +114,10 @@ export class ATMApiClient {
   async changePin(data: { h: string; pin: number; newpin: string }) {
     return this.makeRequest('/change-pin/', { h: data.h, pin: data.pin.toString(), newpin: data.newpin });
   }
+
+async getHistory(data: { h: string; pin: string }): Promise<HistoryResponse[]> {
+  return this.makeRequest('/history/', { h: data.h, pin: data.pin.toString() });
+}
 }
 
 export const atmApi = new ATMApiClient();

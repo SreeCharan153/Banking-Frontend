@@ -40,3 +40,15 @@ export interface ApiResponse {
 export interface ApiError {
   detail: string;
 }
+
+export interface HistoryEntry {
+  id: number;
+  account_id: string;
+  action: string;
+  amount: number;
+  timestamp: string;
+}
+
+export type HistoryResponse =
+  | { history: HistoryEntry[] }    // success
+  | { message: string };           // error

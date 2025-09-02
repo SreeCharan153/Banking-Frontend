@@ -15,8 +15,8 @@ interface PasswordAuthProps {
 
 export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
   const [formData, setFormData] = useState({
-    accountNumber: '',
-    password: ''
+    accountNumber: 'admin',
+    password: 'Charan@123'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');

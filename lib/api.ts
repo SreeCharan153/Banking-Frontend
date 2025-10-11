@@ -100,9 +100,9 @@ export class ATMApiClient {
   async transfer(data: { h: string; toAccount: string; amount: number; pin: number }) {
     const transferData = {
       h: data.h,
-      r: data.toAccount,
       amount: data.amount,
-      pin: data.pin
+      pin: data.pin.toString(),
+      r: data.toAccount
     };
     return this.makeRequest('/transfor/', transferData);
   }

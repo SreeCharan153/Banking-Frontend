@@ -213,7 +213,7 @@ const handleLogout = async () => {
               <div className="flex items-center space-x-2">
                 <Shield className="h-5 w-5 text-emerald-500" />
                 <span className="text-sm text-gray-600">
-                  Authenticated ({role || 'user'})
+                  Authenticated ({role})
                 </span>
               </div>
 

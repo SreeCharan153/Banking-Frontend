@@ -3,20 +3,25 @@ import { API_BASE_URL } from './config';
 export class ATMApiClient {
 
   // No token storage needed anymore
-  private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
-    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-      credentials: "include", // ✅ SEND COOKIE AUTOMATICALLY
-    });
+private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || "API failed");
-    return json;
+  if (res.status === 401) {
+    // optional: trigger front-end logout
+    window.location.reload();
+    throw new Error("Session expired, login again.");
   }
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.detail || "API failed");
+  return json;
+}
+
 
 
   async login(username: string, password: string) {

@@ -15,8 +15,8 @@ interface PasswordAuthProps {
 
 export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
   const [formData, setFormData] = useState({
-    accountNumber: 'admin',
-    password: 'Charan@123'
+    userId: '',
+    password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
     setError('');
 
     try {
-      const res = await atmApi.login(formData.accountNumber, formData.password);
+      const res = await atmApi.login(formData.userId, formData.password);
 
       // ✅ send role to page.tsx
       onAuthenticated(res.role);
@@ -57,19 +57,19 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
               ATM Login
             </CardTitle>
             <CardDescription className="text-gray-600 mt-2">
-              Enter your account number and PIN to access ATM services
+              Enter your User ID and Password to access ATM services
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account Number</Label>
+              <Label htmlFor="UserID">User ID</Label>
               <Input
-                id="accountNumber"
+                id="UserID"
                 type="text"
-                value={formData.accountNumber}
-                onChange={handleChange('accountNumber')}
+                value={formData.userId}
+                onChange={handleChange('userId')}
                 required
               />
             </div>

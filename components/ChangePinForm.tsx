@@ -48,8 +48,9 @@ export function ChangePinForm() {
     try {
       const changePinData = {
         h: formData.h,
-        pin: parseInt(formData.oldPin),
-        newpin: formData.newPin,
+        oldpin: parseInt(formData.oldPin),
+        newpin: parseInt(formData.newPin),
+        vnewpin: parseInt(formData.confirmPin),
       };
 
       const result = await atmApi.changePin(changePinData) as { message: string };

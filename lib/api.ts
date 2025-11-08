@@ -75,6 +75,10 @@ export class ATMApiClient {
   async history(data: { h: string; pin: number }) {
     return this.makeAuthRequest("/account/history", data);
   }
+
+  async changePin(data: { h: string; oldpin: number; newpin: number; vnewpin: number }) {
+    return this.makeAuthRequest("/account/change-pin", data);
+  }
 }
 
 export const atmApi = new ATMApiClient();

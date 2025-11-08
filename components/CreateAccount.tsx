@@ -13,6 +13,7 @@ export function CreateAccount() {
   const [formData, setFormData] = useState({
     h: '',
     pin: '',
+    vpin: '',
     mobileno: '',
     gmail: '',
   });
@@ -29,7 +30,7 @@ export function CreateAccount() {
     try {
       const result = await atmApi.createAccount(formData) as { message: string };
       setSuccess(result.message);
-      setFormData({ h: '', pin: '', mobileno: '', gmail: '' });
+      setFormData({ h: '', pin: '', vpin: '', mobileno: '', gmail: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Account creation failed');
     } finally {
@@ -83,6 +84,22 @@ export function CreateAccount() {
                 value={formData.pin}
                 onChange={handleChange('pin')}
                 placeholder="1234"
+                maxLength={4}
+                pattern="[0-9]{4}"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPin" className="text-sm font-medium">
+                Confirm 4-Digit PIN
+              </Label>
+              <Input
+                id="confirmPin"
+                type="password"
+                value={formData.vpin}
+                onChange={handleChange('vpin')}
+                placeholder="Confirm PIN"
                 maxLength={4}
                 pattern="[0-9]{4}"
                 required

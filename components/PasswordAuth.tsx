@@ -10,7 +10,7 @@ import { CreditCard, Loader2, AlertCircle } from 'lucide-react';
 import { atmApi } from '@/lib/api';
 
 interface PasswordAuthProps {
-  onAuthenticated: () => void;
+  onAuthenticated: (role: string) => void;
 }
 
 export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
@@ -27,9 +27,11 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
     setError('');
 
     try {
-      // Use the check-password endpoint to verify account and password
-      await atmApi.checkPassword(formData.accountNumber, formData.password);
-      onAuthenticated();
+      const res = await atmApi.login(formData.accountNumber, formData.password);
+
+      // ✅ send role to page.tsx
+      onAuthenticated(res.role);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
@@ -42,6 +44,7 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
   ) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/95 backdrop-blur">
@@ -61,36 +64,29 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="accountNumber" className="text-sm font-medium text-gray-700">
-                Account Number
-              </Label>
+              <Label htmlFor="accountNumber">Account Number</Label>
               <Input
                 id="accountNumber"
                 type="text"
                 value={formData.accountNumber}
                 onChange={handleChange('accountNumber')}
-                placeholder="e.g., AC1001"
-                className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Password
-              </Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange('password')}
-                placeholder="Enter your password"
-                className="transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
                 required
               />
             </div>
+
             {error && (
-              <Alert variant="destructive" className="animate-in fade-in-0">
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -98,17 +94,10 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
 
             <Button
               type="submit"
-              className="w-full bg-blue-900 hover:bg-blue-800 transition-all duration-200"
-              disabled={isLoading || !formData.accountNumber || !formData.password}
+              className="w-full bg-blue-900 hover:bg-blue-800"
+              disabled={isLoading}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                'Login to ATM'
-              )}
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Authenticating...</> : 'Login to ATM'}
             </Button>
           </form>
         </CardContent>

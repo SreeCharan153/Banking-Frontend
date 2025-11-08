@@ -1,123 +1,80 @@
-import {HistoryResponse} from '@/types/atm';
-//const API_BASE_URL = 'http://localhost:8000'; // Update this to your API URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { API_BASE_URL } from './config';
 
 export class ATMApiClient {
-  private async makeRequest<T>(
-    endpoint: string,
-    data: any,
-    method: 'POST' = 'POST'
-  ): Promise<T> {
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
 
-      const result = await response.json();
+  // No token storage needed anymore
+  private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+      credentials: "include", // ✅ SEND COOKIE AUTOMATICALLY
+    });
 
-      if (!response.ok) {
-        throw new Error(result.detail || 'API request failed');
-      }
-
-      return result;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Network error occurred');
-    }
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || "API failed");
+    return json;
   }
 
-  async checkPassword(accountNumber: string, password: string) {
-    // Use the check-password endpoint to verify account and password
-    const params = new URLSearchParams({
-      h: accountNumber,
-      pas: password
+
+  async login(username: string, password: string) {
+    const form = new FormData();
+    form.append("username", username);
+    form.append("password", password);
+
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      body: form,
+      credentials: "include", // ✅ STORE COOKIE AUTOMATICALLY
     });
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/check-password/?${params}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
 
-      const result = await response.json();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Login failed");
 
-      if (!response.ok) {
-        throw new Error(result.detail || 'Authentication failed');
-      }
+    return data; // cookie is already saved, nothing else to do
+  }
 
-      return result;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Network error occurred');
-    }
+  async logout() {
+    const res = await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || "Logout failed");
+    return json;
+  }
+
+  async createUser(data: { un: string; pas: string; vps: string; role: string }): Promise<{ success: boolean; message: string }> {
+  return this.makeAuthRequest("/auth/create-user", data);
+}
+
+
+  async createAccount(data: { h: string; pin: string; vpin: string; mobileno: string; gmail: string }) {
+    return this.makeAuthRequest("/account/create", data);
   }
 
   async deposit(data: { h: string; amount: number; pin: number }) {
-    return this.makeRequest('/deposit/', { h: data.h, amount: data.amount, pin: data.pin.toString() });
+    return this.makeAuthRequest("/transaction/deposit", data);
   }
 
   async withdraw(data: { h: string; amount: number; pin: number }) {
-    return this.makeRequest('/withdraw/', { h: data.h, amount: data.amount, pin: data.pin.toString() });
+    return this.makeAuthRequest("/transaction/withdraw", data);
   }
 
-  async createAccount(data: {
-    h: string;
-    pin: string;
-    mobileno: string;
-    gmail: string;
-  }) {
-    return this.makeRequest('/create/', data);
-  }
-
-  async updateMobile(data: {
-    h: string;
-    nmobile: string;
-    omobile: string;
-  }) {
-    return this.makeRequest('/update-mobile/', { h: data.h, nmobile: data.nmobile, omobile: data.omobile });
-  }
-
-  async updateEmail(data: {
-    h: string;
-    nemail: string;
-    oemail: string;
-  }) {
-    return this.makeRequest('/update-email/', { h: data.h, nemail: data.nemail, oemail: data.oemail });
-  }
-
-
-
-  async transfer(data: { h: string; toAccount: string; amount: number; pin: number }) {
-    const transferData = {
-      h: data.h,
-      amount: data.amount,
-      pin: data.pin.toString(),
-      r: data.toAccount
-    };
-    return this.makeRequest('/transfor/', transferData);
+  async transfer(data: { h: string; r: string; amount: number; pin: number }) {
+    return this.makeAuthRequest("/transaction/transfer", data);
   }
 
   async enquiry(data: { h: string; pin: number }) {
-    return this.makeRequest('/enquiry/', { h: data.h, pin: data.pin.toString() });
+    return this.makeAuthRequest("/account/enquiry", data);
   }
 
-  async changePin(data: { h: string; pin: number; newpin: string }) {
-    return this.makeRequest('/change-pin/', { h: data.h, pin: data.pin.toString(), newpin: data.newpin });
+  async history(data: { h: string; pin: number }) {
+    return this.makeAuthRequest("/account/history", data);
   }
-
-async getHistory(data: { h: string; pin: string }): Promise<HistoryResponse[]> {
-  return this.makeRequest('/history/', { h: data.h, pin: data.pin.toString() });
-}
 }
 
 export const atmApi = new ATMApiClient();

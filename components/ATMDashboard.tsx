@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CreateAccount } from './CreateAccount';
+import { CreateUser } from './createUser';
 import { TransactionForm } from './TransactionForm';
 import { UpdateInfo } from './UpdateInfo';
 import { TransferForm } from './TransferForm';
@@ -9,29 +10,72 @@ import { EnquiryForm } from './EnquiryForm';
 import { ChangePinForm } from './ChangePinForm';
 import { TransactionHistory } from './TransactionHistory';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  UserPlus, 
-  ArrowDownCircle, 
-  ArrowUpCircle, 
+import { Card, CardContent } from '@/components/ui/card';
+import { API_BASE_URL } from '@/lib/config';
+
+import {
+  UserPlus,
+  Shield,
+  ArrowDownCircle,
+  ArrowUpCircle,
   ArrowRightLeft,
   Settings,
   Banknote,
-  Shield,
   Users,
   Search,
   KeyRound,
-  History
+  History,
+  LogOut
 } from 'lucide-react';
 
-type ActiveTab = 'overview' | 'create' | 'deposit' | 'withdraw' | 'transfer' | 'update' | 'enquiry' | 'changepin' | 'history';
+type ActiveTab =
+  | 'overview'
+  | 'create-account'
+  | 'create-user'
+  | 'deposit'
+  | 'withdraw'
+  | 'transfer'
+  | 'update'
+  | 'enquiry'
+  | 'changepin'
+  | 'history';
 
-export function ATMDashboard() {
+interface DashboardProps {
+  role?: string;
+  onLogout?: () => void;
+}
+
+export function ATMDashboard({ role, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
+  // ✅ logout function
+const handleLogout = async () => {
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {}
+
+  if (onLogout) onLogout();  // ✅ send signal to parent
+};
+
   const menuItems = [
+    ...(role === 'admin'
+      ? [
+          {
+            id: 'create-user' as const,
+            label: 'Create User',
+            icon: Shield,
+            color: 'bg-pink-500 hover:bg-pink-600',
+            description: 'Create new system user'
+          },
+        ]
+      : []),
+
+
     {
-      id: 'create' as const,
+      id: 'create-account' as const,
       label: 'Create Account',
       icon: UserPlus,
       color: 'bg-emerald-500 hover:bg-emerald-600',
@@ -90,36 +134,48 @@ export function ATMDashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'create':
+      case 'create-user':
+        if (role !== 'admin') return <div className="p-6 text-red-600 font-semibold">Access Denied</div>;
+        return <CreateUser />;
+
+      case 'create-account':
         return <CreateAccount />;
+
       case 'deposit':
         return <TransactionForm type="deposit" />;
+
       case 'withdraw':
         return <TransactionForm type="withdraw" />;
+
       case 'transfer':
         return <TransferForm />;
+
       case 'update':
         return <UpdateInfo />;
+
       case 'enquiry':
         return <EnquiryForm />;
+
       case 'changepin':
         return <ChangePinForm />;
+
       case 'history':
         return <TransactionHistory />;
+
       default:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
-                <Card 
+                <Card
                   key={item.id}
                   className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 bg-white hover:scale-[1.02]"
                   onClick={() => setActiveTab(item.id)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-lg ${item.color} flex items-center justify-center transition-colors`}>
+                      <div className={`w-12 h-12 rounded-lg ${item.color} flex items-center justify-center`}>
                         <Icon className="h-6 w-6 text-white" />
                       </div>
                       <div className="flex-1">
@@ -151,10 +207,27 @@ export function ATMDashboard() {
                 <p className="text-sm text-gray-600">Secure Banking Operations</p>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-emerald-500" />
-              <span className="text-sm text-gray-600">Authenticated</span>
+
+            {/* ✅ Logout added here */}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-emerald-500" />
+                <span className="text-sm text-gray-600">
+                  Authenticated ({role || 'user'})
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Logout
+              </Button>
             </div>
+
           </div>
         </div>
       </div>
@@ -187,7 +260,9 @@ export function ATMDashboard() {
                 <Users className="h-10 w-10 text-white" />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">Welcome to ATM System</h2>
+                <h2 className="text-3xl font-bold text-gray-900">
+                  Welcome to ATM System
+                </h2>
                 <p className="text-lg text-gray-600 mt-2">
                   Manage accounts, process transactions, and update customer information
                 </p>
@@ -201,9 +276,7 @@ export function ATMDashboard() {
             </div>
           </div>
         ) : (
-          <div className="max-w-2xl mx-auto">
-            {renderContent()}
-          </div>
+          <div className="max-w-2xl mx-auto">{renderContent()}</div>
         )}
       </div>
     </div>

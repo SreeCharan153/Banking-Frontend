@@ -15,12 +15,14 @@ export function UpdateInfo() {
     h: '',
     nmobile: '',
     omobile: '',
+    pin: '',
   });
 
   const [emailForm, setEmailForm] = useState({
     h: '',
     nemail: '',
     oemail: '',
+    pin: '',
   });
 
   const [mobileLoading, setMobileLoading] = useState(false);
@@ -38,12 +40,13 @@ export function UpdateInfo() {
 
     try {
       const result = await atmApi.updateMobile({
-        h: mobileForm.h,
-        nmobile: mobileForm.nmobile,
-        omobile: mobileForm.omobile,
+          h: mobileForm.h,
+          omobileno: mobileForm.omobile,
+          nmobileno: mobileForm.nmobile,
+          pin: parseInt(mobileForm.pin),
       });
       setMobileSuccess((result as { message: string }).message);
-      setMobileForm({ h: '', nmobile: '', omobile: '' });
+      setMobileForm({ h: '', nmobile: '', omobile: '', pin: '' });
     } catch (err) {
       setMobileError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -62,9 +65,10 @@ export function UpdateInfo() {
         h: emailForm.h,
         nemail: emailForm.nemail,
         oemail: emailForm.oemail,
+        pin: parseInt(emailForm.pin),
       });
       setEmailSuccess((result as { message: string }).message);
-      setEmailForm({ h: '', nemail: '', oemail: '' });
+      setEmailForm({ h: '', nemail: '', oemail: '', pin: '' });
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -106,6 +110,19 @@ export function UpdateInfo() {
                     value={mobileForm.h}
                     onChange={(e) => setMobileForm(prev => ({ ...prev, h: e.target.value }))}
                     placeholder="e.g., AC1001"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="m-pin" className="text-sm font-medium">
+                    PIN
+                  </Label>
+                  <Input
+                    id="m-pin"
+                    type="password"
+                    value={mobileForm.pin}
+                    onChange={(e) => setMobileForm(prev => ({ ...prev, pin: e.target.value }))}
+                    placeholder="Enter your PIN"
                     required
                   />
                 </div>
@@ -187,6 +204,19 @@ export function UpdateInfo() {
                     value={emailForm.h}
                     onChange={(e) => setEmailForm(prev => ({ ...prev, h: e.target.value }))}
                     placeholder="e.g., AC1001"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e-pin" className="text-sm font-medium">
+                    PIN
+                  </Label>
+                  <Input
+                    id="e-pin"
+                    type="password"
+                    value={emailForm.pin}
+                    onChange={(e) => setEmailForm(prev => ({ ...prev, pin: e.target.value }))}
+                    placeholder="Enter your PIN"
                     required
                   />
                 </div>

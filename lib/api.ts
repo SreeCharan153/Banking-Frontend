@@ -79,6 +79,14 @@ export class ATMApiClient {
   async changePin(data: { h: string; oldpin: number; newpin: number; vnewpin: number }) {
     return this.makeAuthRequest("/account/change-pin", data);
   }
+
+  async updateMobile(data: { h: string; pin: number; omobileno: string; nmobileno: string }) {
+    return this.makeAuthRequest("/account/update-mobile", data);
+  }
+
+  async updateEmail(data: { h: string; pin: number; oemail: string; nemail: string }) {
+    return this.makeAuthRequest("/account/update-email", data);
+  }
 }
 
 export const atmApi = new ATMApiClient();

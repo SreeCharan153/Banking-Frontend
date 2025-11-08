@@ -23,7 +23,7 @@ export function CreateUser() {
 
     try {
       const res = await atmApi.createUser(form);
-      setSuccess(res.message || "User created");
+      setSuccess(res.message || "User created"); 
       setForm({ un: '', pas: '', vps: '', role: 'teller' });
     } catch (err: any) {
       setError(err.message || 'Failed to create user');

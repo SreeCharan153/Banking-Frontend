@@ -64,7 +64,7 @@ export class ATMApiClient {
     return this.makeAuthRequest("/transaction/withdraw", data);
   }
 
-  async transfer(data: { h: string; r: string; amount: number; pin: number }) {
+  async transfer(data: { h: string; pin: number; toAccount: string; amount: number; }) {
     return this.makeAuthRequest("/transaction/transfer", data);
   }
 

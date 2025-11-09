@@ -1,242 +1,173 @@
-Alright chief, here’s a **clean, professional, investor-friendly, recruiter-friendly, and developer-friendly** README for your project **RupeeWave – Core Banking System**.
-
-This is polished enough for GitHub, resumes, or investor demos.
-
----
-
-# ✅ **RupeeWave – Secure Core Banking System (FastAPI + Supabase + Next.js)**
-
-RupeeWave is a full-stack **core banking backend** built with production-grade features:
-✔ Secure authentication
-✔ Account creation
-✔ Deposits / withdrawals / transfers
-✔ Transaction history
-✔ PIN protection + lockout
-✔ Update mobile/email
-✔ Audit logging
-✔ Supabase Postgres storage
-✔ Fully automated test suite (pytest)
-
-This is designed like a real ATM / Teller backend with strict validations and role-based access.
+# 🏦 RupeeWave – Secure Banking ATM System  
+A production-grade banking simulation with full authentication, account operations, transaction processing, and audit logging built using FastAPI + Supabase + Next.js.
 
 ---
 
-## ✅ **Tech Stack**
-
-| Layer    | Technology                       |
-| -------- | -------------------------------- |
-| Backend  | FastAPI, Python 3                |
-| Database | Supabase Postgres                |
-| Auth     | JWT + HTTP-only cookies          |
-| Frontend | Next.js + Tailwind + ShadCN      |
-| Security | PIN hashing, lockout, role guard |
-| Testing  | Pytest + FastAPI TestClient      |
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Powered%20API-009688)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E)
+![NextJS](https://img.shields.io/badge/Next.js-Frontend-black)
+![JWT](https://img.shields.io/badge/Auth-JWT%20Cookies-orange)
+![Tests](https://img.shields.io/badge/Tests-Pytest-green)
+![Deploy](https://img.shields.io/badge/Deployed-Vercel%20%2B%20Render-green)
 
 ---
 
-## ✅ **Features**
+## ✅ Live Demo
+
+| Component | URL |
+|-----------|-----|
+| ✅ **Frontend (Admin/Teller UI)** | https://rupeewave.vercel.app/ |
+| ✅ **Backend (FastAPI + Swagger UI)** | https://rupeewave.onrender.com |
+
+---
+
+## 🚀 Overview
+
+RupeeWave is a full banking system with:
+
+✅ Admin/Teller authentication via **JWT HttpOnly Cookies**  
+✅ Multiple account operations  
+✅ Secure PIN system + lockout  
+✅ Full transaction history logging  
+✅ Automated backend tests  
+✅ Deployed and publicly usable
+
+---
+
+## 🔥 Features
 
 ### ✅ Authentication
+- Login using JWT
+- Cookies stored securely (no localStorage)
+- Refresh token rotation
+- Auto-session renew
+- PIN validation with lockout after 3 cracks
 
-* Secure login with JWT cookies
-* Role-based access (admin, teller, customer)
-* Cookie auto-refresh
-* Full audit logs of every action
-
-### ✅ Account Features
-
-| Endpoint                        | Action                    |
-| ------------------------------- | ------------------------- |
-| POST `/account/create`          | Create bank account       |
-| POST `/account/enquiry`         | Balance check             |
-| GET `/history/{ac_no}?pin=XXXX` | Fetch transaction history |
-| PUT `/account/change-pin`       | Change PIN                |
-| PUT `/account/update-mobile`    | Update mobile number      |
-| PUT `/account/update-email`     | Update email              |
+### ✅ Account Operations
+- Create account
+- Update Email / Mobile
+- Change PIN
+- Balance enquiry
 
 ### ✅ Transactions
+- Deposit
+- Withdraw
+- Transfer
+- Each action logged in history
 
-| Endpoint                     | Action                      |
-| ---------------------------- | --------------------------- |
-| POST `/transaction/deposit`  | Add balance                 |
-| POST `/transaction/withdraw` | Withdraw amount             |
-| POST `/transaction/transfer` | Transfer to another account |
-
-All transactions:
-✔ Validate PIN
-✔ Log history entry
-✔ Prevent mismatched accounts
-✔ Atomic (no half-updates)
+### ✅ History
+- Every transaction is timestamped
+- Sorted newest → oldest
+- Transfer tracking (transfer in / out)
 
 ---
 
-## ✅ **Security Layer**
+## 🛠 Tech Stack
 
-✅ **PIN stored as bcrypt hash**
-✅ **Wrong PIN → lockout after 3 attempts**
-✅ **All actions logged in `history` table**
-✅ **No receiver balance leak**
-✅ **HTTP-only secure cookies**
-✅ **Account number + PIN required for all financial ops**
-
-Example event logs:
-
-| actor  | action          | details | IP        | timestamp  |
-| ------ | --------------- | ------- | --------- | ---------- |
-| AC123… | deposit_success | +₹500   | 127.0.0.1 | 2025-11-09 |
+| Layer | Technology |
+|-------|------------|
+| Backend | FastAPI |
+| Database | Supabase (Postgres) |
+| Auth | JWT with HttpOnly Cookies |
+| Frontend | Next.js + TypeScript + ShadCN UI |
+| Testing | Pytest |
+| Deployment | Render (Backend), Vercel (Frontend) |
 
 ---
 
-## ✅ **Database Structure (Supabase PostgreSQL)**
+## 📌 API Endpoints
 
-**accounts**
-
-```
-account_no (PK)
-holder_name
-pin_hash
-balance
-mobileno
-gmail
-created_at
-```
-
-**history**
-
-```
-id (PK)
-account_no
-action
-amount
-context
-created_at
-```
-
-**users**
-
-```
-id
-username
-password_hash
-role (admin/teller/customer)
-```
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/auth/login` | Login | Admin / Teller |
+| POST | `/auth/create-user` | Create system user | Admin |
+| POST | `/account/create` | Open bank account | Admin / Teller |
+| POST | `/transaction/deposit` | Deposit money | Admin / Teller |
+| POST | `/transaction/withdraw` | Withdraw money | Admin / Teller |
+| POST | `/transaction/transfer` | Transfer funds | Admin / Teller |
+| POST | `/account/enquiry` | Balance check | Admin / Teller |
+| GET | `/history/{acc_no}?pin=1234` | Transaction history | Admin / Teller |
 
 ---
 
-## ✅ **Run Backend**
+## ✅ Running Locally
 
-### 1️⃣ Install Dependencies
+### 1️⃣ Clone
+```bash
+git clone https://github.com/yourname/rupeewave.git
+cd rupeewave
+````
+
+### 2️⃣ Backend Setup
 
 ```bash
+cd Backend
 pip install -r requirements.txt
-```
-
-### 2️⃣ Add env variables
-
-Create `.env`:
-
-```
-SUPABASE_URL=your_url
-SUPABASE_KEY=your_key
-```
-
-### 3️⃣ Start server
-
-```bash
 uvicorn main:app --reload
 ```
 
-### 4️⃣ Open docs
-
-```
-http://127.0.0.1:8000/docs
-```
-
----
-
-## ✅ Running Tests (PyTest)
-
-This project includes a full automated test suite:
-
-✅ account creation
-✅ PIN validation
-✅ lockout
-✅ deposit/withdraw/transfer
-✅ update mobile/email
-✅ transaction history
-✅ negative scenarios
-
-Run tests:
+### 3️⃣ Frontend Setup
 
 ```bash
-pytest -s
+cd Frontend
+npm install
+npm run dev
 ```
 
 ---
 
-## ✅ Frontend (Next.js)
+## ✅ Automated Testing
 
-All APIs are wrapped in `/lib/api.ts`:
-
-Example usage:
-
-```ts
-const res = await atmApi.deposit({
-    acc_no: "AC2587598f73",
-    pin: "1234",
-    amount: 1000
-});
+```bash
+pytest -v
 ```
 
-Transaction history UI:
-✔ Icons for credit / debit
-✔ Live refresh
-✔ Amount color coding
-✔ Date formatting
+Covers:
+
+* Account creation
+* Deposits / Withdrawals / Transfers
+* History responses
+* PIN security
+* Mobile & email updates
 
 ---
 
-## ✅ Screenshots (optional to add later)
+## ✅ Security
 
-* ✅ Create Account
-* ✅ Deposit / Withdraw
-* ✅ Transaction History UI
-* ✅ PIN Lockout UI
-
----
-
-## ✅ Future Enhancements
-
-✅ SMS/Email OTP for transfers
-✅ Export PDF statements
-✅ Loan accounts
-✅ Branch-wise user control
-✅ Mobile banking app
+✔ HttpOnly cookies (cannot be accessed by JS)
+✔ Token refresh flow
+✔ PIN lockout & validation
+✔ Full logging of every event
+✔ Input validation at request + DB level
 
 ---
 
-## ✅ Author
+## ✅ Future Upgrades
 
-**Sri Charan (Chief)**
-
-* CSE – Smart financial automation systems
-* Building production-grade FinTech tools
-* Github, LinkedIn, portfolio links can be added here
-
----
-
-## ✅ License
-
-MIT License (if public) or Private (if closed-source)
+✅ Customer self-service UI
+✅ SMS / Email transaction alerts
+✅ PDF statements
+✅ Teller dashboard with analytics
 
 ---
 
-### ✅ Want a shorter README for recruiters?
+## 📎 Project Links
 
-I can generate a polished short version too.
+| Component       | URL                                                              |
+| --------------- | ---------------------------------------------------------------- |
+| ✅ Frontend Live | [https://rupeewave.vercel.app/](https://rupeewave.vercel.app/)   |
+| ✅ Backend Live  | [https://rupeewave.onrender.com](https://rupeewave.onrender.com) |
 
-### ✅ Want GitHub badges (build, test coverage, python, next.js)?
+---
 
-Say the word and I’ll add them.
+## ❤️ Credits
 
-Done. This README makes your project look **real-world, enterprise-grade, and production-ready.**
+Developer: **Sri CHaran Machabhakthuni**
+Backend: FastAPI
+Frontend: Next.js
+Database: Supabase
+
+---
+
+### ⭐ If this project helped you, star the repo and share it!

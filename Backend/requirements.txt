@@ -1,32 +1,29 @@
-fastapi==0.111.0
-uvicorn[standard]==0.30.0
-pydantic[email]==2.8.2
+# FastAPI + Server
+fastapi[all]==0.111.0
+uvicorn>=0.24.0
+pydantic[email]>=2.8.2
+python-multipart>=0.0.7
+jinja2>=3.1.2
 
+# Auth + Security
 bcrypt==4.1.2
 PyJWT==2.9.0
-python-multipart==0.0.6
+email-validator==2.1.1
 
-# Database / Supabase
+# Supabase + HTTP
 supabase==2.3.3
 postgrest==0.14.0
 httpx==0.27.0
-
-# ORM Support (optional but required if used)
-sqlalchemy==2.0.3
-
-# Utility
 python-dotenv==1.0.1
 requests==2.32.3
-email-validator==2.1.1
 
-# Async + Web
+# Optional ORM (if used)
+sqlalchemy==2.0.3
+
+# Async utils
 anyio==4.4.0
-starlette==0.37.2
 
 # Testing
 pytest==8.4.2
 pytest-asyncio==0.24.0
 pytest-timeout==2.3.1
-
-# CORS (FastAPI adds it, but explicit)
-fastapi[all]==0.111.0

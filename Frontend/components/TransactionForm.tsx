@@ -37,7 +37,7 @@ export function TransactionForm({ type }: TransactionFormProps) {
     try {
       const transactionData = {
         h: formData.h,
-        pin: parseInt(formData.pin),
+        pin: formData.pin,
         amount: parseInt(formData.amount),
       };
 

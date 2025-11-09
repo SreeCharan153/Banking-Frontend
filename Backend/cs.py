@@ -3,8 +3,8 @@ from auth import Auth
 
 class CustmorService:
     auth = Auth()
-    def enquiry(self,ac_no,pin):
-        state,m=self.auth.check(ac_no=ac_no,pin=pin)
+    def enquiry(self,ac_no,pin,request):
+        state,m=self.auth.check(ac_no=ac_no,pin=pin,request=request)
         if state==True:
             with sqlite3.connect('./Database/Bank.db',timeout=10) as conn:
                 cursor = conn.cursor()

@@ -31,6 +31,6 @@ class History:
 
     def add_entry(self, cursor, account_id, action, amount, context=None):
         cursor.execute(
-            "INSERT INTO history (account_id, action, amount, context) VALUES (?, ?, ?, ?)",
+            "INSERT INTO history (account_no, action, amount, context) VALUES (?, ?, ?, ?)",
             (account_id, action, amount, context)
         )

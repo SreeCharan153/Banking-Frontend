@@ -38,7 +38,7 @@ export function TransactionHistory() {
     setError('');
 
     try {
-      const payload = { h: formData.accountNumber.trim(), pin: parseInt(formData.pin.trim()) };
+      const payload = { h: formData.accountNumber.trim(), pin: formData.pin.trim() };
       const result: unknown = await atmApi.history(payload);
 
       if (isHistorySuccess(result)) {

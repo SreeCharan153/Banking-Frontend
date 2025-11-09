@@ -15,7 +15,7 @@ class Update:
         conn.execute("PRAGMA foreign_keys = ON;")
         return conn
 
-    def change_pin(self, account_no, old_pin, new_pin):
+    def change_pin(self, account_no, old_pin, new_pin, request):
         new_pin = str(new_pin).strip()
         old_pin = str(old_pin).strip()
 
@@ -24,7 +24,7 @@ class Update:
         if new_pin == old_pin:
             return False, "New PIN cannot be the same as the old PIN."
 
-        ok, msg = self.auth.check(ac_no=account_no, pin=old_pin)
+        ok, msg = self.auth.check(ac_no=account_no, pin=old_pin, request=request)
         if not ok:
             return False, "Old PIN does not match."
 
@@ -33,7 +33,7 @@ class Update:
             try:
                 cur.execute("BEGIN IMMEDIATE")
 
-                new_hash = self.auth.pin_hash(new_pin)
+                new_hash = self.auth.hash_pin(new_pin)
                 cur.execute(
                     "UPDATE accounts SET pin = ? WHERE account_no = ?",
                     (new_hash, account_no)
@@ -48,11 +48,11 @@ class Update:
                 conn.rollback()
                 return False, f"Failed: {e}"
 
-    def update_mobile(self, account_no, old_mobile, new_mobile, pin):
+    def update_mobile(self, account_no, old_mobile, new_mobile, pin, request):
         if not (new_mobile.isdigit() and len(new_mobile) == 10):
             return False, "Invalid new mobile number."
 
-        ok, msg = self.auth.check(ac_no=account_no, pin=pin)
+        ok, msg = self.auth.check(ac_no=account_no, pin=pin, request=request)
         if not ok:
             return False, "PIN authentication failed."
 
@@ -82,11 +82,11 @@ class Update:
                 return False, str(e)
 
 
-    def update_email(self, account_no, old_email, new_email, pin):
+    def update_email(self, account_no, old_email, new_email, pin, request):
         if '@' not in new_email:
             return False, "Invalid new email."
 
-        ok, msg = self.auth.check(ac_no=account_no, pin=pin)
+        ok, msg = self.auth.check(ac_no=account_no, pin=pin, request=request)
         if not ok:
             return False, "PIN authentication failed."
 

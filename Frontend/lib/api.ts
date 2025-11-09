@@ -61,35 +61,35 @@ private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
     return this.makeAuthRequest("/account/create", data);
   }
 
-  async deposit(data: { h: string; amount: number; pin: number }) {
+  async deposit(data: { h: string; amount: number; pin: string }) {
     return this.makeAuthRequest("/transaction/deposit", data);
   }
 
-  async withdraw(data: { h: string; amount: number; pin: number }) {
+  async withdraw(data: { h: string; amount: number; pin: string }) {
     return this.makeAuthRequest("/transaction/withdraw", data);
   }
 
-  async transfer(data: { h: string; pin: number; toAccount: string; amount: number; }) {
+  async transfer(data: { h: string; pin: string; toAccount: string; amount: number; }) {
     return this.makeAuthRequest("/transaction/transfer", data);
   }
 
-  async enquiry(data: { h: string; pin: number }) {
+  async enquiry(data: { h: string; pin: string }) {
     return this.makeAuthRequest("/account/enquiry", data);
   }
 
-  async history(data: { h: string; pin: number }) {
+  async history(data: { h: string; pin: string }) {
     return this.makeAuthRequest("/account/history", data);
   }
 
-  async changePin(data: { h: string; oldpin: number; newpin: number; vnewpin: number }) {
+  async changePin(data: { h: string; oldpin: string; newpin: string; vnewpin: string }) {
     return this.makeAuthRequest("/account/change-pin", data);
   }
 
-  async updateMobile(data: { h: string; pin: number; omobileno: string; nmobileno: string }) {
+  async updateMobile(data: { h: string; pin: string; omobileno: string; nmobileno: string }) {
     return this.makeAuthRequest("/account/update-mobile", data);
   }
 
-  async updateEmail(data: { h: string; pin: number; oemail: string; nemail: string }) {
+  async updateEmail(data: { h: string; pin: string; oemail: string; nemail: string }) {
     return this.makeAuthRequest("/account/update-email", data);
   }
 }

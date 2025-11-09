@@ -29,7 +29,7 @@ export function TransferForm() {
     try {
       const transferData = {
         h: formData.h,
-        pin: parseInt(formData.pin),
+        pin: formData.pin,
         toAccount: formData.toAccount, // Keep the form field name for UI consistency
         amount: parseInt(formData.amount),
       };

@@ -1,5 +1,7 @@
 import sqlite3
 from typing import Tuple
+
+from fastapi import Request
 from history import History
 
 class Transaction:
@@ -31,8 +33,8 @@ class Transaction:
         return cursor.fetchone() is not None
 
     # ---------- Public API ----------
-    def deposit(self, ac_no: str, amount: int, pin: str) -> Tuple[bool, str]:
-        ok, msg = self.auth.check(ac_no=ac_no, pin=pin)
+    def deposit(self, ac_no: str, amount: int, pin: str, request: Request) -> Tuple[bool, str]:
+        ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
         if not ok:
             return False, msg
         if amount <= 0:
@@ -58,8 +60,8 @@ class Transaction:
                 conn.rollback()
                 return False, f"Deposit failed: {e}"
 
-    def withdraw(self, ac_no: str, amount: int, pin: str) -> Tuple[bool, str]:
-        ok, msg = self.auth.check(ac_no=ac_no, pin=pin)
+    def withdraw(self, ac_no: str, amount: int, pin: str, request: Request) -> Tuple[bool, str]:
+        ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
         if not ok:
             return False, msg
         if amount <= 0:
@@ -89,8 +91,8 @@ class Transaction:
                 conn.rollback()
                 return False, f"Withdraw failed: {e}"
 
-    def transfer(self, sender: str, receiver: str, amount: int, pin: str, transfer_id: str) -> Tuple[bool, str]:
-        ok, msg = self.auth.check(ac_no=sender, pin=pin)
+    def transfer(self, sender: str, receiver: str, amount: int, pin: str, transfer_id: str, request: Request) -> Tuple[bool, str]:
+        ok, msg = self.auth.check(ac_no=sender, pin=pin, request=request)
         if not ok:
             return False, msg
         if amount <= 0:

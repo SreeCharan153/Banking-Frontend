@@ -27,7 +27,7 @@ export function EnquiryForm() {
     try {
       const enquiryData = {
         h: formData.h,
-        pin: parseInt(formData.pin),
+        pin: formData.pin,
       };
 
       const result = await atmApi.enquiry(enquiryData) as { message: string };

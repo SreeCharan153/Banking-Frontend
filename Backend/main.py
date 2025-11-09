@@ -32,7 +32,9 @@ app = FastAPI(title="Banking ATM API", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rupeewave.vercel.app"],  # Update with your frontend URL
+    allow_origins=[
+        "http://localhost:3000",
+        "https://rupeewave.vercel.app"],  # Update with your frontend URL
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],
@@ -180,8 +182,9 @@ def create_user(data: CreateUserRequest, _: Dict = Depends(require_roles("admin"
 
 
 @app.post("/auth/login")
-def login(response: Response, username: str = Form(...), password: str = Form(...)):
+def login(response: Response, request: Request, username: str = Form(...), password: str = Form(...)):
     if not auth.password_check(username, password):
+        auth.log_event(username, "login_failed", "Wrong password", request)
         raise HTTPException(401, "Invalid credentials")
 
     with sqlite3.connect(DB_PATH) as conn:
@@ -218,7 +221,7 @@ def login(response: Response, username: str = Form(...), password: str = Form(..
         secure=True,
         max_age=60 * 60 * 24 * 30,  # 30 days
     )
-
+    auth.log_event(username, "login_success", "User authenticated", request)
     return {"success": True, "role": role}
 @app.get("/auth/check")
 def auth_check(user = Depends(get_current_user)):
@@ -267,78 +270,96 @@ def refresh(request: Request, response: Response, refresh_token: str = Cookie(No
 # ---- ACCOUNTS ----
 
 @app.post("/account/create")
-def create_account(data: CreateAccountRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+def create_account(request: Request, data: CreateAccountRequest, _: Dict = Depends(require_roles("admin", "teller"))):
     ok, msg = auth.create(data.h, data.pin, data.vpin, data.mobileno, data.gmail)
     if not ok:
+        auth.log_event(data.h, "create_account_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "create_account_success", "Account created successfully", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/account/change-pin")
-def change_pin(data: ChangePinRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = update.change_pin(data.h, data.newpin, data.pin)
+def change_pin(request: Request, data: ChangePinRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+    ok, msg = update.change_pin(data.h, data.newpin, data.pin, request=request)
     if not ok:
+        auth.log_event(data.h, "change_pin_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "change_pin_success", "PIN changed successfully", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/account/update-mobile")
-def update_mobile(data: UpdateMobileRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = update.update_mobile(data.h, data.omobile, data.nmobile, data.pin)
+def update_mobile(request: Request, data: UpdateMobileRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+    ok, msg = update.update_mobile(data.h, data.omobile, data.nmobile, data.pin, request=request)
     if not ok:
+        auth.log_event(data.h, "update_mobile_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "update_mobile_success", "Mobile number updated successfully", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/account/update-email")
-def update_email(data: UpdateEmailRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = update.update_email(data.h, data.oemail, data.nemail, data.pin)
+def update_email(request: Request, data: UpdateEmailRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+    ok, msg = update.update_email(data.h, data.oemail, data.nemail, data.pin, request=request)
     if not ok:
+        auth.log_event(data.h, "update_email_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "update_email_success", "Email updated successfully", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/account/enquiry")
-def enquiry(data: AccountBase, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = cs.enquiry(data.h, data.pin)
+def enquiry(request: Request, data: AccountBase, _: Dict = Depends(require_roles("admin", "teller"))):
+    ok, msg = cs.enquiry(data.h, data.pin, request=request)
     if not ok:
+        auth.log_event(data.h, "enquiry_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "enquiry_success", "Balance enquiry successful", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/account/history")
-def history(data: AccountBase, _: Dict = Depends(require_roles("admin", "teller"))):
+def history(request: Request, data: AccountBase, _: Dict = Depends(require_roles("admin", "teller"))):
     result = his.get_history(data.h, data.pin)
     if not result:
+        auth.log_event(data.h, "history_failed", "No history found", request)
         raise HTTPException(status_code=404, detail="No history found")
+    auth.log_event(data.h, "history_success", "Transaction history retrieved", request)
     return {"success": True, "history": list(result)}
 
 
 # ---- TRANSACTIONS ----
 
 @app.post("/transaction/deposit")
-def deposit(data: TransactionRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = trs.deposit(data.h, data.amount, data.pin)
+def deposit(request: Request, data: TransactionRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+    ok, msg = trs.deposit(data.h, data.amount, data.pin, request=request)
     if not ok:
+        auth.log_event(data.h, "deposit_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "deposit_success", f"Deposited {data.amount}", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/transaction/withdraw")
-def withdraw(data: TransactionRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = trs.withdraw(data.h, data.amount, data.pin)
+def withdraw(request: Request, data: TransactionRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+    ok, msg = trs.withdraw(data.h, data.amount, data.pin, request=request)
     if not ok:
+        auth.log_event(data.h, "withdraw_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
+    auth.log_event(data.h, "withdraw_success", f"Withdrew {data.amount}", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/transaction/transfer")
-def transfer(data: TransferRequest, _: Dict = Depends(require_roles("admin", "teller"))):
+def transfer(request: Request, data: TransferRequest, _: Dict = Depends(require_roles("admin", "teller"))):
     transfer_id = str(uuid4())
-    ok, msg = trs.transfer(data.h, data.r, data.amount, data.pin, transfer_id)
+    ok, msg = trs.transfer(data.h, data.r, data.amount, data.pin, transfer_id, request=request)
     if not ok:
+        auth.log_event(data.h, "transfer_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-
+    
+    auth.log_event(data.h, "transfer_success", f"Transferred {data.amount} to {data.r}", request)
     return {
         "success": True,
         "message": msg,

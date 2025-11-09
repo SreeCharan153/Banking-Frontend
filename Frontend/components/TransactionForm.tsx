@@ -15,7 +15,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ type }: TransactionFormProps) {
   const [formData, setFormData] = useState({
-    h: '',
+    acc_no: '',
     pin: '',
     amount: '',
   });
@@ -36,7 +36,7 @@ export function TransactionForm({ type }: TransactionFormProps) {
 
     try {
       const transactionData = {
-        h: formData.h,
+        acc_no: formData.acc_no,
         pin: formData.pin,
         amount: parseInt(formData.amount),
       };
@@ -46,7 +46,7 @@ export function TransactionForm({ type }: TransactionFormProps) {
         : await atmApi.withdraw(transactionData);
 
       setSuccess((result as { message: string }).message);
-      setFormData({ h: '', pin: '', amount: '' });
+      setFormData({ acc_no: '', pin: '', amount: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transaction failed');
     } finally {
@@ -84,8 +84,8 @@ export function TransactionForm({ type }: TransactionFormProps) {
             <Input
               id="account"
               type="text"
-              value={formData.h}
-              onChange={handleChange('h')}
+              value={formData.acc_no}
+              onChange={handleChange('acc_no')}
               placeholder="e.g., AC1001"
               required
             />

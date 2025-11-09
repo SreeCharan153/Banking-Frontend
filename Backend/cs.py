@@ -1,20 +1,29 @@
-import sqlite3
 from auth import Auth
+from supabase_client import supabase
 
-class CustmorService:
-    auth = Auth()
-    def enquiry(self,ac_no,pin,request):
-        state,m=self.auth.check(ac_no=ac_no,pin=pin,request=request)
-        if state==True:
-            with sqlite3.connect('./Database/Bank.db',timeout=10) as conn:
-                cursor = conn.cursor()
-                cursor.execute('SELECT balance FROM accounts WHERE account_no = ?', (ac_no,))
-                result = cursor.fetchone()
-                if result is None:
-                    return (False, "Account not found.")
-                current_balance = result[0]
-            return (True, f"Current Balance: ₹{current_balance}")
-        else:
-            
-            return (m)
+class CustomerService:
+    def __init__(self):
+        self.auth = Auth()
+        self.db = supabase
         
+    def enquiry(self, ac_no: str, pin: str, request):
+        ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
+        if not ok:
+            self.auth.log_event(ac_no, "balance_enquiry_failed", msg, request)
+            return False, msg
+        
+        try:
+            response = (
+                self.db.table("accounts")
+                .select("balance")
+                .eq("account_no", ac_no)
+                .single()
+                .execute()
+            )
+            balance = response.data["balance"]
+
+            self.auth.log_event(ac_no, "balance_enquiry_success", f"Balance: {balance}", request)
+            return True, f"Current Balance: ₹{balance}"
+        except Exception as e:
+            self.auth.log_event(ac_no, "balance_enquiry_failed", str(e), request)
+            return False, f"Enquiry failed: {e}"

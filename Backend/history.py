@@ -1,36 +1,47 @@
-import sqlite3
-from hashlib import sha512
+from supabase_client import supabase
+from auth import Auth
+from typing import Any
+
 class History:
     def __init__(self):
-        with sqlite3.connect('./Database/Bank.db',timeout=10) as conn:
-            cursor = conn.cursor()
-            cursor.execute(''' 
-                CREATE TABLE IF NOT EXISTS history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    account_id TEXT NOT NULL,
-                    action TEXT NOT NULL,
-                    amount REAL NOT NULL,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            conn.commit()
-    def get_history(self, account_id,pin):
-        with sqlite3.connect('./Database/Bank.db',timeout=10) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT pin FROM accounts WHERE account_no = ?", (account_id,)
-            )
-            result = cursor.fetchone()
-            if not result or result[0] != sha512(pin.encode()).hexdigest():
-                return {"message": "Invalid account number or pin"}
-            cursor.execute(
-                "SELECT * FROM history WHERE account_id = ? ORDER BY timestamp DESC",
-                (account_id,)
-            )
-            return cursor.fetchall()
+        self.db = supabase
+        self.auth = Auth()
 
-    def add_entry(self, cursor, account_id, action, amount, context=None):
-        cursor.execute(
-            "INSERT INTO history (account_no, action, amount, context) VALUES (?, ?, ?, ?)",
-            (account_id, action, amount, context)
-        )
+    def get(self, ac_no: str) -> tuple[bool, Any]:
+        try:
+            response = (
+                self.db.table("history")
+                .select("id, account_no, action, amount, created_at")
+                .eq("account_no", ac_no)
+                .order("created_at", desc=True)
+                .execute()
+            )
+
+            # ✅ return clean tuples directly
+            data = [
+                [
+                    row["id"],
+                    row["account_no"],
+                    row["action"],
+                    row["amount"],
+                    row["created_at"],
+                ]
+                for row in response.data or []
+            ]
+
+            return True, data
+
+        except Exception as e:
+            return False, f"Database Error: {e}"
+
+
+    def add_entry(self, ac_no: str, action: str, amount: int, context: Any = None):
+        try:
+            self.db.table("history").insert({
+                "account_no": ac_no,
+                "action": action,
+                "amount": amount,
+                "context": context
+            }).execute()
+        except Exception as e:
+            print(f"[HISTORY ERROR] {e}")

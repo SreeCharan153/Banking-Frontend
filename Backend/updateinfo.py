@@ -1,117 +1,68 @@
-import sqlite3
+from supabase_client import supabase
 from auth import Auth
+from fastapi import Request
+from typing import Tuple
 
-class Update:
-    def __init__(self, db_path="./Database/Bank.db", busy_ms=3000, logger=None):
-        self.db_path = db_path
-        self.busy_ms = busy_ms
+class UpdateInfo:
+    def __init__(self):
+        self.db = supabase
         self.auth = Auth()
-        self.logger = logger  # Optional History logger
 
-    def _get_conn(self):
-        conn = sqlite3.connect(self.db_path, timeout=self.busy_ms / 1000)
-        conn.execute("PRAGMA journal_mode = WAL;")
-        conn.execute(f"PRAGMA busy_timeout = {self.busy_ms}")
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+    def update_mobile(self, ac_no: str, pin: str, old_mobile: str, new_mobile: str, request: Request) -> Tuple[bool, str]:
+        if len(new_mobile) != 10 or not new_mobile.isdigit():
+            return False, "Invalid mobile number."
 
-    def change_pin(self, account_no, old_pin, new_pin, request):
-        new_pin = str(new_pin).strip()
-        old_pin = str(old_pin).strip()
-
-        if not (new_pin.isdigit() and len(new_pin) == 4):
-            return False, "New PIN must be exactly 4 digits."
-        if new_pin == old_pin:
-            return False, "New PIN cannot be the same as the old PIN."
-
-        ok, msg = self.auth.check(ac_no=account_no, pin=old_pin, request=request)
+        ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
         if not ok:
-            return False, "Old PIN does not match."
+            return False, msg
+        try:
+            om = self.db.table("accounts").select("mobileno").eq("account_no", ac_no).single().execute()
+            if om.data["mobileno"] != old_mobile:
+                return False, "Old mobile number does not match."
+        except Exception as e:
+            return False, f"Database error: {e}"
 
-        with self._get_conn() as conn:
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
+        try:
+            self.db.table("accounts").update({"mobileno": new_mobile}).eq("account_no", ac_no).execute()
+            self.auth.log_event(ac_no, "update_mobile", f"New mobile: {new_mobile}", request)
+            return True, "Mobile number updated successfully."
+        except Exception as e:
+            return False, f"Update failed: {e}"
 
-                new_hash = self.auth.hash_pin(new_pin)
-                cur.execute(
-                    "UPDATE accounts SET pin = ? WHERE account_no = ?",
-                    (new_hash, account_no)
-                )
+    def update_email(self, ac_no: str, pin: str, old_email: str, new_email: str, request: Request) -> Tuple[bool, str]:
+        if "@" not in new_email or new_email.count("@") != 1:
+            return False, "Invalid email."
 
-                if self.logger:
-                    self.logger.add_entry(cur, account_no, "PIN Change", 0, context="User-authenticated")
-
-                conn.commit()
-                return True, "PIN updated successfully."
-            except Exception as e:
-                conn.rollback()
-                return False, f"Failed: {e}"
-
-    def update_mobile(self, account_no, old_mobile, new_mobile, pin, request):
-        if not (new_mobile.isdigit() and len(new_mobile) == 10):
-            return False, "Invalid new mobile number."
-
-        ok, msg = self.auth.check(ac_no=account_no, pin=pin, request=request)
+        ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
         if not ok:
-            return False, "PIN authentication failed."
+            return False, msg
+        try:
+            om = self.db.table("accounts").select("gmail").eq("account_no", ac_no).single().execute()
+            if om.data["gmail"] != old_email:
+                return False, "Old email does not match."
+        except Exception as e:
+            return False, f"Database error: {e}"
 
-        with self._get_conn() as conn:
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
-                cur.execute("SELECT mobileno FROM accounts WHERE account_no = ?", (account_no,))
-                row = cur.fetchone()
+        try:
+            self.db.table("accounts").update({"gmail": new_email}).eq("account_no", ac_no).execute()
+            self.auth.log_event(ac_no, "update_email", f"New email: {new_email}", request)
+            return True, "Email updated successfully."
+        except Exception as e:
+            return False, f"Update failed: {e}"
 
-                if not row:
-                    raise ValueError("Account not found.")
+    def change_pin(self, ac_no: str, old_pin: str, new_pin: str, request: Request) -> Tuple[bool, str]:
+        if len(new_pin) != 4 or not new_pin.isdigit():
+            return False, "New PIN must be 4 digits."
 
-                if row[0] != old_mobile:
-                    raise ValueError("Old mobile number does not match records.")
-
-                cur.execute("UPDATE accounts SET mobileno = ? WHERE account_no = ?", (new_mobile, account_no))
-
-                if self.logger:
-                    self.logger.add_entry(cur, account_no, "Mobile Update", 0,
-                                          context=f"{old_mobile} → {new_mobile}")
-
-                conn.commit()
-                return True, "Mobile number updated."
-            except Exception as e:
-                conn.rollback()
-                return False, str(e)
-
-
-    def update_email(self, account_no, old_email, new_email, pin, request):
-        if '@' not in new_email:
-            return False, "Invalid new email."
-
-        ok, msg = self.auth.check(ac_no=account_no, pin=pin, request=request)
+        ok, msg = self.auth.check(ac_no=ac_no, pin=old_pin, request=request)
         if not ok:
-            return False, "PIN authentication failed."
+            return False, msg
 
-        with self._get_conn() as conn:
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
-                cur.execute("SELECT gmail FROM accounts WHERE account_no = ?", (account_no,))
-                row = cur.fetchone()
+        hashed = self.auth.hash_pin(new_pin)
 
-                if not row:
-                    raise ValueError("Account not found.")
-
-                if row[0] != old_email:
-                    raise ValueError("Old email does not match records.")
-
-                cur.execute("UPDATE accounts SET gmail = ? WHERE account_no = ?", (new_email, account_no))
-
-                if self.logger:
-                    self.logger.add_entry(cur, account_no, "Email Update", 0,
-                                          context=f"{old_email} → {new_email}")
-
-                conn.commit()
-                return True, "Email updated."
-            except Exception as e:
-                conn.rollback()
-                return False, str(e)
-
+        try:
+            self.db.table("accounts").update({"pin": hashed, "failed_attempts": 0}).eq("account_no", ac_no).execute()
+            self.auth.log_event(ac_no, "pin_change", "PIN updated successfully", request)
+            return True, "PIN changed successfully."
+        except Exception as e:
+            return False, f"PIN change failed: {e}"

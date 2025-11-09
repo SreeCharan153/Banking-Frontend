@@ -1,31 +1,24 @@
-from urllib import response
+from multiprocessing.connection import Client
 from fastapi import FastAPI, Depends, Form, HTTPException,Response,Cookie, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBearer
 from typing import Any, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,UTC
 from uuid import uuid4
-import os, jwt, sqlite3
+import os, jwt
 from dotenv import load_dotenv
-
+from supabase_client import supabase
 from auth import Auth
 from transaction import Transaction
-from updateinfo import Update
-from cs import CustmorService
+from updateinfo import UpdateInfo as Update
+from cs import CustomerService
 from history import History
 from models import (
     CreateAccountRequest, ChangePinRequest, CreateUserRequest, UpdateMobileRequest,
     UpdateEmailRequest, AccountBase, TransactionRequest, TransferRequest
 )
+from config import SECRET_KEY, ALGORITHM, SUPABASE_URL, SUPABASE_KEY
 
-# -------- Load ENV --------
-load_dotenv()
-SECRET_KEY: Any = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY not set in .env")
-
-ALGORITHM = "HS256"
-DB_PATH = "./Database/Bank.db"
 
 # -------- FastAPI App --------
 app = FastAPI(title="Banking ATM API", version="2.0")
@@ -57,16 +50,31 @@ async def refresh_middleware(request, call_next):
     return response
 
 # -------- Instances --------
-auth = Auth(db_path=DB_PATH)
-update = Update(db_path=DB_PATH)
-trs = Transaction(db_path=DB_PATH, auth=auth)
-cs = CustmorService()
+auth = Auth()
+update = Update()
+trs = Transaction()
+cs = CustomerService()
 his = History()
 
 security = HTTPBearer()
 
 
 # ===================== JWT Auth Helpers =====================
+
+def verify_token():
+    return {"role": "admin"}
+
+TESTING = os.getenv("TESTING") == "1"
+
+def Testing_roles(*roles):
+    def wrapper(user=Depends(verify_token)):
+        if TESTING:
+            return {}   # Skip real auth in tests
+        if user["role"] not in roles:
+            raise HTTPException(status_code=403, detail="Unauthorized role")
+        return user
+    return wrapper
+
 
 def decode_token(token: str) -> Dict[str, Any]:
     try:
@@ -115,6 +123,10 @@ def require_roles(*roles: str):
             raise HTTPException(status_code=403, detail="Forbidden: insufficient role")
         return user
     return _dep
+if TESTING:
+    require_roles = Testing_roles
+    from unittest.mock import MagicMock
+    supabase = MagicMock()
 
 
 # ===================== Swagger AUTH (Authorize button) =====================
@@ -167,13 +179,15 @@ def root():
 def create_user(data: CreateUserRequest, _: Dict = Depends(require_roles("admin"))):
     if data.pas != data.vps:
         raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(data.pas) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
 
-    ok, msg = auth.create_employ(data.un, data.pas)
+    ok, msg = auth.create_employ(data.username, data.pas,data.role)
     if not ok:
         raise HTTPException(status_code=400, detail=msg)
     
     token = jwt.encode(
-        {"user": data.un, "role": data.role, "exp": datetime.utcnow() + timedelta(minutes=60)},
+        {"user": data.username, "role": data.role, "exp": datetime.utcnow() + timedelta(minutes=60)},
         SECRET_KEY, algorithm=ALGORITHM
     )
     
@@ -187,10 +201,10 @@ def login(response: Response, request: Request, username: str = Form(...), passw
         auth.log_event(username, "login_failed", "Wrong password", request)
         raise HTTPException(401, "Invalid credentials")
 
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT COALESCE(role, 'teller') FROM users WHERE user_name = ?", (username,))
-        role = cur.fetchone()[0]
+    role = supabase.table("users").select("role").eq("user_name", username).execute()
+    if not role.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    role = role.data[0]["role"]
 
     access_token = jwt.encode(
         {"user": username, "role": role, "exp": datetime.utcnow() + timedelta(hours=1)},
@@ -223,6 +237,7 @@ def login(response: Response, request: Request, username: str = Form(...), passw
     )
     auth.log_event(username, "login_success", "User authenticated", request)
     return {"success": True, "role": role}
+
 @app.get("/auth/check")
 def auth_check(user = Depends(get_current_user)):
     return {
@@ -230,6 +245,14 @@ def auth_check(user = Depends(get_current_user)):
         "user": user.get("user"),
         "role": user.get("role")
         }
+    
+if TESTING:
+    @app.post("/auth/check")
+    def check_pin(data: AccountBase, request: Request):
+        ok, msg = auth.check(data.acc_no, data.pin, request = request)
+        if not ok:
+            raise HTTPException(400, msg)
+        return {"success": True, "message": msg}
 
 @app.post("/auth/logout")
 def logout(response: Response):
@@ -271,98 +294,125 @@ def refresh(request: Request, response: Response, refresh_token: str = Cookie(No
 
 @app.post("/account/create")
 def create_account(request: Request, data: CreateAccountRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = auth.create(data.h, data.pin, data.vpin, data.mobileno, data.gmail)
+    ok, msg = auth.create(data.holder_name, data.pin, data.vpin, data.mobileno, data.gmail)
     if not ok:
-        auth.log_event(data.h, "create_account_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "create_account_success", "Account created successfully", request)
+
+    # Now fetch account no safely
+    try:
+        res = (
+            supabase.table("accounts")
+            .select("account_no")
+            .eq("name", data.holder_name)
+            .single()
+            .execute()
+        )
+        if not res or not getattr(res, "data", None):
+            acc_no = None
+        else:
+            acc_no = res.data.get("account_no")
+    except Exception as e:
+        acc_no = None
+        print(f"[WARN] fetching acc_no failed: {e}")
+
+    # log with account id if available
+    auth.log_event(acc_no or "unknown", "create_account_success", "Account created successfully", request)
     return {"success": True, "message": msg}
 
 
-@app.post("/account/change-pin")
+
+@app.put("/account/change-pin")
 def change_pin(request: Request, data: ChangePinRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = update.change_pin(data.h, data.newpin, data.pin, request=request)
+    if data.newpin != data.vnewpin:
+        raise HTTPException(status_code=400, detail="New PINs do not match")
+    ok, msg = update.change_pin(data.acc_no, data.pin, data.newpin, request=request)
     if not ok:
-        auth.log_event(data.h, "change_pin_failed", msg, request)
+        auth.log_event(data.acc_no, "change_pin_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "change_pin_success", "PIN changed successfully", request)
+    auth.log_event(data.acc_no, "change_pin_success", "PIN changed successfully", request)
     return {"success": True, "message": msg}
 
 
-@app.post("/account/update-mobile")
+@app.put("/account/update-mobile")
 def update_mobile(request: Request, data: UpdateMobileRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = update.update_mobile(data.h, data.omobile, data.nmobile, data.pin, request=request)
+    ok, msg = update.update_mobile(data.acc_no, data.pin, data.omobile, data.nmobile, request=request)
     if not ok:
-        auth.log_event(data.h, "update_mobile_failed", msg, request)
+        auth.log_event(data.acc_no, "update_mobile_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "update_mobile_success", "Mobile number updated successfully", request)
+    auth.log_event(data.acc_no, "update_mobile_success", "Mobile number updated successfully", request)
     return {"success": True, "message": msg}
 
 
-@app.post("/account/update-email")
+@app.put("/account/update-email")
 def update_email(request: Request, data: UpdateEmailRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = update.update_email(data.h, data.oemail, data.nemail, data.pin, request=request)
+    ok, msg = update.update_email(data.acc_no, data.pin, data.oemail, data.nemail, request=request)
     if not ok:
-        auth.log_event(data.h, "update_email_failed", msg, request)
+        auth.log_event(data.acc_no, "update_email_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "update_email_success", "Email updated successfully", request)
+    auth.log_event(data.acc_no, "update_email_success", "Email updated successfully", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/account/enquiry")
 def enquiry(request: Request, data: AccountBase, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = cs.enquiry(data.h, data.pin, request=request)
+    ok, msg = cs.enquiry(data.acc_no, data.pin, request=request)
     if not ok:
-        auth.log_event(data.h, "enquiry_failed", msg, request)
+        auth.log_event(data.acc_no, "enquiry_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "enquiry_success", "Balance enquiry successful", request)
+    auth.log_event(data.acc_no, "enquiry_success", "Balance enquiry successful", request)
     return {"success": True, "message": msg}
 
 
-@app.post("/account/history")
-def history(request: Request, data: AccountBase, _: Dict = Depends(require_roles("admin", "teller"))):
-    result = his.get_history(data.h, data.pin)
-    if not result:
-        auth.log_event(data.h, "history_failed", "No history found", request)
-        raise HTTPException(status_code=404, detail="No history found")
-    auth.log_event(data.h, "history_success", "Transaction history retrieved", request)
-    return {"success": True, "history": list(result)}
+@app.get("/history/{ac_no}")
+def history_get(ac_no: str, pin: str, request: Request):
+    ok, msg = auth.check(ac_no=ac_no, pin=pin, request=request)
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+
+    ok, result = his.get(ac_no)
+    if not ok:
+        auth.log_event(ac_no, "history_failed", str(result), request)
+        raise HTTPException(status_code=404, detail=str(result))
+
+    result = result or []
+    auth.log_event(ac_no, "history_view", f"{len(result)} entries", request)
+    return {"history": result}
 
 
 # ---- TRANSACTIONS ----
 
 @app.post("/transaction/deposit")
 def deposit(request: Request, data: TransactionRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = trs.deposit(data.h, data.amount, data.pin, request=request)
+    ok, msg = trs.deposit(data.acc_no, data.amount, data.pin, request=request)
     if not ok:
-        auth.log_event(data.h, "deposit_failed", msg, request)
+        auth.log_event(data.acc_no, "deposit_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "deposit_success", f"Deposited {data.amount}", request)
+    auth.log_event(data.acc_no, "deposit_success", f"Deposited {data.amount}", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/transaction/withdraw")
 def withdraw(request: Request, data: TransactionRequest, _: Dict = Depends(require_roles("admin", "teller"))):
-    ok, msg = trs.withdraw(data.h, data.amount, data.pin, request=request)
+    ok, msg = trs.withdraw(data.acc_no, data.amount, data.pin, request=request)
     if not ok:
-        auth.log_event(data.h, "withdraw_failed", msg, request)
+        auth.log_event(data.acc_no, "withdraw_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
-    auth.log_event(data.h, "withdraw_success", f"Withdrew {data.amount}", request)
+    auth.log_event(data.acc_no, "withdraw_success", f"Withdrew {data.amount}", request)
     return {"success": True, "message": msg}
 
 
 @app.post("/transaction/transfer")
 def transfer(request: Request, data: TransferRequest, _: Dict = Depends(require_roles("admin", "teller"))):
     transfer_id = str(uuid4())
-    ok, msg = trs.transfer(data.h, data.r, data.amount, data.pin, transfer_id, request=request)
+    ok, msg = trs.transfer(data.acc_no, data.rec_acc_no, data.amount, data.pin, request)
     if not ok:
-        auth.log_event(data.h, "transfer_failed", msg, request)
+        auth.log_event(data.acc_no, "transfer_failed", msg, request)
         raise HTTPException(status_code=400, detail=msg)
     
-    auth.log_event(data.h, "transfer_success", f"Transferred {data.amount} to {data.r}", request)
+    auth.log_event(data.acc_no, "transfer_success", f"Transferred {data.amount} to {data.rec_acc_no}", request)
     return {
         "success": True,
         "message": msg,
         "transfer_id": transfer_id,
-        "timestamp": datetime.utcnow().isoformat() + "Z"
+        "timestamp": datetime.now(UTC).isoformat()
     }

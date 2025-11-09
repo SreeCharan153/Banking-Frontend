@@ -11,7 +11,7 @@ import { atmApi } from '@/lib/api';
 
 export function EnquiryForm() {
   const [formData, setFormData] = useState({
-    h: '',
+    acc_no: '',
     pin: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -26,13 +26,13 @@ export function EnquiryForm() {
 
     try {
       const enquiryData = {
-        h: formData.h,
+        acc_no: formData.acc_no,
         pin: formData.pin,
       };
 
       const result = await atmApi.enquiry(enquiryData) as { message: string };
       setBalance(result.message);
-      setFormData({ h: '', pin: '' });
+      setFormData({ acc_no: '', pin: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Balance enquiry failed');
     } finally {
@@ -68,8 +68,8 @@ export function EnquiryForm() {
             <Input
               id="account"
               type="text"
-              value={formData.h}
-              onChange={handleChange('h')}
+              value={formData.acc_no}
+              onChange={handleChange('acc_no')}
               placeholder="e.g., AC1001"
               required
             />

@@ -11,7 +11,7 @@ import { atmApi } from '@/lib/api';
 
 export function CreateAccount() {
   const [formData, setFormData] = useState({
-    h: '',
+    holder_name: '',
     pin: '',
     vpin: '',
     mobileno: '',
@@ -30,7 +30,7 @@ export function CreateAccount() {
     try {
       const result = await atmApi.createAccount(formData) as { message: string };
       setSuccess(result.message);
-      setFormData({ h: '', pin: '', vpin: '', mobileno: '', gmail: '' });
+      setFormData({ holder_name: '', pin: '', vpin: '', mobileno: '', gmail: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Account creation failed');
     } finally {
@@ -67,8 +67,8 @@ export function CreateAccount() {
               <Input
                 id="holder"
                 type="text"
-                value={formData.h}
-                onChange={handleChange('h')}
+                value={formData.holder_name}
+                onChange={handleChange('holder_name')}
                 placeholder="Full name"
                 required
               />

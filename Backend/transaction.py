@@ -1,167 +1,132 @@
-import sqlite3
 from typing import Tuple
-
+from supabase_client import supabase
 from fastapi import Request
 from history import History
+from auth import Auth
 
 class Transaction:
-    def __init__(self, db_path: str, auth, *, busy_ms: int = 3000):
+    def __init__(self):
         """
         auth must have: auth.check(ac_no: str, pin: str) -> (bool, str)
         """
-        self.db_path = db_path
-        self.auth = auth
-        self.busy_ms = busy_ms
-        self._init_pragmas()
+        self.db = supabase
+        self.auth = Auth()
         self.log = History()
 
-    def _get_conn(self):
-        conn = sqlite3.connect(self.db_path, timeout=self.busy_ms/1000)
-        conn.execute(f"PRAGMA busy_timeout = {self.busy_ms}")
-        # Defensive: keep WAL on even if someone toggled it.
-        conn.execute("PRAGMA journal_mode = WAL;")
-        return conn
-
-    def _init_pragmas(self):
-        with self._get_conn() as conn:
-            conn.execute("PRAGMA journal_mode = WAL;")
-            conn.execute("PRAGMA foreign_keys = ON;")
-
     # ---------- Helpers ----------
-    def _account_exists(self, cursor: sqlite3.Cursor, ac_no: str) -> bool:
-        cursor.execute("SELECT 1 FROM accounts WHERE account_no = ? LIMIT 1", (ac_no,))
-        return cursor.fetchone() is not None
+    def _account_exists(self, ac_no: str) -> bool:
+        try:
+            response = (
+                self.db.table("accounts")
+                .select("1")
+                .eq("account_no", ac_no)
+                .limit(1)
+                .execute()
+            )
+            return bool(response.data)    # ✅ correct
+        except Exception as e:
+            print(f"[DB ERROR] {e}")
+            return False
 
     # ---------- Public API ----------
     def deposit(self, ac_no: str, amount: int, pin: str, request: Request) -> Tuple[bool, str]:
         ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
-        if not ok:
-            return False, msg
         if amount <= 0:
             return False, "Amount must be greater than zero."
+        if not ok:
+            return False, msg
 
-        with self._get_conn() as conn:
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
+        try:
+            self.db.rpc("deposit_money", {"ac_no": ac_no, "amount": amount}).execute()
+        except Exception as e:
+            self.auth.log_event(ac_no, "deposit_failed", str(e), request)
+            return False, f"Deposit failed: {e}"
 
-                if not self._account_exists(cur, ac_no):
-                    raise ValueError("Account not found.")
+        self.auth.log_event(ac_no, "deposit_success", f"Deposited {amount}", request)
+        resp = self.db.table("accounts").select("balance").eq("account_no", ac_no).single().execute()
+        new_balance = resp.data["balance"]
+        return True, f"Deposit successful. New balance: {new_balance}"
 
-                cur.execute("""
-                    UPDATE accounts
-                    SET balance = balance + ?
-                    WHERE account_no = ?
-                """, (amount, ac_no))
-                self.log.add_entry(cursor=cur, account_id=ac_no, action="Deposit", amount=amount, context="user-initiated")
-                conn.commit()
-                return True, f"Deposited ₹{amount} to {ac_no}"
-            except Exception as e:
-                conn.rollback()
-                return False, f"Deposit failed: {e}"
 
     def withdraw(self, ac_no: str, amount: int, pin: str, request: Request) -> Tuple[bool, str]:
         ok, msg = self.auth.check(ac_no=ac_no, pin=pin, request=request)
         if not ok:
             return False, msg
+
         if amount <= 0:
             return False, "Amount must be greater than zero."
 
-        with self._get_conn() as conn:
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
+        try:
+            self.db.rpc("withdraw_money", {"ac_no": ac_no, "amount": amount}).execute()
+        except Exception as e:
+            self.auth.log_event(ac_no, "withdraw_failed", str(e), request)
+            err = str(e).lower()
 
-                if not self._account_exists(cur, ac_no):
-                    raise ValueError("Account not found.")
+            if "insufficient balance" in err:
+                return False, "Insufficient balance."
+            if "account not found" in err:
+                return False, "Account not found."
+            if "invalid withdraw amount" in err:
+                return False, "Amount must be greater than zero."
 
-                # Guard against overdraft atomically
-                cur.execute("""
-                    UPDATE accounts
-                    SET balance = balance - ?
-                    WHERE account_no = ? AND balance >= ?
-                """, (amount, ac_no, amount))
-                if cur.rowcount == 0:
-                    raise ValueError("Insufficient funds.")
+            return False, f"Withdraw failed: {e}"
 
-                self.log.add_entry(cursor=cur, account_id=ac_no, action="Withdraw", amount=amount, context="user-initiated")
-                conn.commit()
-                return True, f"Withdrew ₹{amount} from {ac_no}"
-            except Exception as e:
-                conn.rollback()
-                return False, f"Withdraw failed: {e}"
+        self.auth.log_event(ac_no, "withdraw_success", f"Withdrew {amount}", request)
 
-    def transfer(self, sender: str, receiver: str, amount: int, pin: str, transfer_id: str, request: Request) -> Tuple[bool, str]:
-        ok, msg = self.auth.check(ac_no=sender, pin=pin, request=request)
+        resp = (
+            self.db.table("accounts")
+            .select("balance")
+            .eq("account_no", ac_no)
+            .single()
+            .execute()
+        )
+        new_balance = resp.data["balance"]
+
+        return True, f"Withdraw successful. New balance: {new_balance}"
+
+
+    def transfer(self, from_ac: str, to_ac: str, amount: int, pin: str, request: Request) -> Tuple[bool, str]:
+        # Authenticate sender
+        ok, msg = self.auth.check(ac_no=from_ac, pin=pin, request=request)
         if not ok:
             return False, msg
+
         if amount <= 0:
             return False, "Amount must be greater than zero."
-        if sender == receiver:
-            return False, "Sender and receiver must be different."
 
-        with self._get_conn() as conn:
-            cur = conn.cursor()
-            try:
-                cur.execute("BEGIN IMMEDIATE")
+        try:
+            self.db.rpc("transfer_money", {
+                "from_ac": from_ac,
+                "to_ac": to_ac,
+                "amount": amount
+            }).execute()
+        except Exception as e:
+            self.auth.log_event(from_ac, "transfer_failed", str(e), request)
+            err = str(e).lower()
 
-                # Idempotency: if transfer_id already logged as success, return success.
-                cur.execute("SELECT status FROM transfers WHERE id = ? LIMIT 1", (transfer_id,))
-                row = cur.fetchone()
-                if row:
-                    return (row[0] == "success",
-                            f"Transfer already processed with status '{row[0]}' (id={transfer_id}).")
+            if "sender account not found" in err:
+                return False, "Sender account not found."
+            if "receiver account not found" in err:
+                return False, "Receiver account not found."
+            if "insufficient balance" in err:
+                return False, "Insufficient balance."
+            if "invalid transfer amount" in err:
+                return False, "Amount must be greater than zero."
 
-                # Validate accounts exist up-front
-                if not self._account_exists(cur, sender):
-                    raise ValueError("Sender account not found.")
-                if not self._account_exists(cur, receiver):
-                    raise ValueError("Receiver account not found.")
+            return False, f"Transfer failed: {e}"
 
-                # 1) Debit with guard
-                cur.execute("""
-                    UPDATE accounts
-                    SET balance = balance - ?
-                    WHERE account_no = ? AND balance >= ?
-                """, (amount, sender, amount))
-                if cur.rowcount == 0:
-                    # Record failed transfer for traceability
-                    cur.execute("""
-                        INSERT INTO transfers(id, sender, receiver, amount, status)
-                        VALUES (?, ?, ?, ?, 'failed')
-                    """, (transfer_id, sender, receiver, amount))
-                    conn.commit()
-                    return False, "Insufficient funds."
+        # Log success
+        self.auth.log_event(from_ac, "transfer_success", f"Sent {amount} to {to_ac}", request)
 
-                # 2) Credit
-                cur.execute("""
-                    UPDATE accounts
-                    SET balance = balance + ?
-                    WHERE account_no = ?
-                """, (amount, receiver))
+        # Get updated sender balance
+        resp = (
+            self.db.table("accounts")
+            .select("balance")
+            .eq("account_no", from_ac)
+            .single()
+            .execute()
+        )
+        new_balance = resp.data["balance"]
 
-                # 3) Audit + logs inside SAME TX
-                cur.execute("""
-                    INSERT INTO transfers(id, sender, receiver, amount, status)
-                    VALUES (?, ?, ?, ?, 'success')
-                """, (transfer_id, sender, receiver, amount))
+        return True, f"Transfer successful. New balance: {new_balance}"
 
-                self.log.add_entry(cur, sender, "Transfer:Debit", amount, context=f"to {receiver} | id={transfer_id}")
-                self.log.add_entry(cur, receiver, "Transfer:Credit", amount, context=f"from {sender} | id={transfer_id}")
-
-                conn.commit()
-                return True, f"₹{amount} transferred from {sender} to {receiver} (id={transfer_id})"
-
-            except Exception as e:
-                conn.rollback()
-                # Best-effort record of failure
-                try:
-                    with self._get_conn() as conn2:
-                        conn2.execute("""
-                            INSERT OR IGNORE INTO transfers(id, sender, receiver, amount, status)
-                            VALUES (?, ?, ?, ?, 'failed')
-                        """, (transfer_id, sender, receiver, amount))
-                        conn2.commit()
-                except:
-                    pass
-                return False, f"Transfer failed: {e}"

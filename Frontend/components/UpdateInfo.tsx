@@ -12,14 +12,14 @@ import { atmApi } from '@/lib/api';
 
 export function UpdateInfo() {
   const [mobileForm, setMobileForm] = useState({
-    h: '',
+    acc_no: '',
     nmobile: '',
     omobile: '',
     pin: '',
   });
 
   const [emailForm, setEmailForm] = useState({
-    h: '',
+    acc_no: '',
     nemail: '',
     oemail: '',
     pin: '',
@@ -40,13 +40,13 @@ export function UpdateInfo() {
 
     try {
       const result = await atmApi.updateMobile({
-          h: mobileForm.h,
-          omobileno: mobileForm.omobile,
-          nmobileno: mobileForm.nmobile,
+          acc_no: mobileForm.acc_no,
+          omobile: mobileForm.omobile,
+          nmobile: mobileForm.nmobile,
           pin: mobileForm.pin,
       });
       setMobileSuccess((result as { message: string }).message);
-      setMobileForm({ h: '', nmobile: '', omobile: '', pin: '' });
+      setMobileForm({ acc_no: '', nmobile: '', omobile: '', pin: '' });
     } catch (err) {
       setMobileError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -62,13 +62,13 @@ export function UpdateInfo() {
 
     try {
       const result = await atmApi.updateEmail({
-        h: emailForm.h,
+        acc_no: emailForm.acc_no,
         nemail: emailForm.nemail,
         oemail: emailForm.oemail,
         pin: emailForm.pin,
       });
       setEmailSuccess((result as { message: string }).message);
-      setEmailForm({ h: '', nemail: '', oemail: '', pin: '' });
+      setEmailForm({ acc_no: '', nemail: '', oemail: '', pin: '' });
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : 'Update failed');
     } finally {
@@ -107,8 +107,8 @@ export function UpdateInfo() {
                   <Input
                     id="m-account"
                     type="text"
-                    value={mobileForm.h}
-                    onChange={(e) => setMobileForm(prev => ({ ...prev, h: e.target.value }))}
+                    value={mobileForm.acc_no}
+                    onChange={(e) => setMobileForm(prev => ({ ...prev, acc_no: e.target.value }))}
                     placeholder="e.g., AC1001"
                     required
                   />
@@ -201,8 +201,8 @@ export function UpdateInfo() {
                   <Input
                     id="e-account"
                     type="text"
-                    value={emailForm.h}
-                    onChange={(e) => setEmailForm(prev => ({ ...prev, h: e.target.value }))}
+                    value={emailForm.acc_no}
+                    onChange={(e) => setEmailForm(prev => ({ ...prev, acc_no: e.target.value }))}
                     placeholder="e.g., AC1001"
                     required
                   />

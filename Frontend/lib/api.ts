@@ -3,9 +3,9 @@ import { API_BASE_URL } from './config';
 export class ATMApiClient {
 
   // No token storage needed anymore
-private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
+private async makeAuthRequestPost<T>(endpoint: string, data: any,method: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: "POST",
+    method: method,
     credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -21,6 +21,25 @@ private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
   if (!res.ok) throw new Error(json.detail || "API failed");
   return json;
 }
+
+async makeAuthRequestGet<T>(endpoint: string, params: Record<string, string | number>): Promise<T> {
+  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  Object.entries(params).forEach(([key, val]) => url.searchParams.append(key, String(val)));
+
+  const res = await fetch(url.toString(), {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "GET request failed");
+  }
+
+  return res.json() as Promise<T>;
+}
+
+
 
 
 
@@ -52,45 +71,45 @@ private async makeAuthRequest<T>(endpoint: string, data: any): Promise<T> {
     return json;
   }
 
-  async createUser(data: { un: string; pas: string; vps: string; role: string }): Promise<{ success: boolean; message: string }> {
-  return this.makeAuthRequest("/auth/create-user", data);
+  async createUser(data: { username: string; pas: string; vps: string; role: string }): Promise<{ success: boolean; message: string }> {
+    return this.makeAuthRequestPost("/auth/create-user", data,'POST');
 }
 
 
-  async createAccount(data: { h: string; pin: string; vpin: string; mobileno: string; gmail: string }) {
-    return this.makeAuthRequest("/account/create", data);
+  async createAccount(data: { holder_name: string; pin: string; vpin: string; mobileno: string; gmail: string }) {
+    return this.makeAuthRequestPost("/account/create", data,'POST');
   }
 
-  async deposit(data: { h: string; amount: number; pin: string }) {
-    return this.makeAuthRequest("/transaction/deposit", data);
+  async deposit(data: { acc_no: string; amount: number; pin: string }) {
+    return this.makeAuthRequestPost("/transaction/deposit", data,'POST');
   }
 
-  async withdraw(data: { h: string; amount: number; pin: string }) {
-    return this.makeAuthRequest("/transaction/withdraw", data);
+  async withdraw(data: { acc_no: string; amount: number; pin: string }) {
+    return this.makeAuthRequestPost("/transaction/withdraw", data,'POST');
   }
 
-  async transfer(data: { h: string; pin: string; toAccount: string; amount: number; }) {
-    return this.makeAuthRequest("/transaction/transfer", data);
+  async transfer(data: { acc_no: string; pin: string; rec_acc_no: string; amount: number; }) {
+    return this.makeAuthRequestPost("/transaction/transfer", data,'POST');
   }
 
-  async enquiry(data: { h: string; pin: string }) {
-    return this.makeAuthRequest("/account/enquiry", data);
+  async enquiry(data: { acc_no: string; pin: string }) {
+    return this.makeAuthRequestPost("/account/enquiry", data,'POST');
   }
 
-  async history(data: { h: string; pin: string }) {
-    return this.makeAuthRequest("/account/history", data);
+  async history(data: { acc_no: string; pin: string }) {
+    return this.makeAuthRequestGet(`/history/${data.acc_no}`, { pin: data.pin });
   }
 
-  async changePin(data: { h: string; oldpin: string; newpin: string; vnewpin: string }) {
-    return this.makeAuthRequest("/account/change-pin", data);
+  async changePin(data: { acc_no: string; pin: string; newpin: string; vnewpin: string }) {
+    return this.makeAuthRequestPost("/account/change-pin", data,'PUT');
   }
 
-  async updateMobile(data: { h: string; pin: string; omobileno: string; nmobileno: string }) {
-    return this.makeAuthRequest("/account/update-mobile", data);
+  async updateMobile(data: { acc_no: string; pin: string; omobile: string; nmobile: string }) {
+    return this.makeAuthRequestPost("/account/update-mobile", data,'PUT');
   }
 
-  async updateEmail(data: { h: string; pin: string; oemail: string; nemail: string }) {
-    return this.makeAuthRequest("/account/update-email", data);
+  async updateEmail(data: { acc_no: string; pin: string; oemail: string; nemail: string }) {
+    return this.makeAuthRequestPost("/account/update-email", data,'PUT');
   }
 }
 

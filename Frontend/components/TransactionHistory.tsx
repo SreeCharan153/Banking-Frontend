@@ -18,7 +18,9 @@ function isHistorySuccess(v: unknown): v is HistorySuccess {
   return !!v && typeof v === 'object' && 'history' in (v as any) && Array.isArray((v as any).history);
 }
 
-function normalizeAction(raw: string): 'deposit' | 'withdraw' | 'transfer_in' | 'transfer_out' | 'other' {
+// ✅ Safe parser that never crashes even if data is corrupted
+function normalizeAction(raw: unknown): 'deposit' | 'withdraw' | 'transfer_in' | 'transfer_out' | 'other' {
+  if (typeof raw !== 'string') return 'other';
   const s = raw.toLowerCase();
   if (s.includes('deposit')) return 'deposit';
   if (s.includes('withdraw')) return 'withdraw';
@@ -28,7 +30,7 @@ function normalizeAction(raw: string): 'deposit' | 'withdraw' | 'transfer_in' | 
 }
 
 export function TransactionHistory() {
-  const [formData, setFormData] = useState({ accountNumber: '', pin: '' });
+  const [formData, setFormData] = useState({ acc_no: '', pin: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [transactions, setTransactions] = useState<HistoryEntryTuple[]>([]);
@@ -38,7 +40,7 @@ export function TransactionHistory() {
     setError('');
 
     try {
-      const payload = { h: formData.accountNumber.trim(), pin: formData.pin.trim() };
+      const payload = { acc_no: formData.acc_no.trim(), pin: formData.pin.trim() };
       const result: unknown = await atmApi.history(payload);
 
       if (isHistorySuccess(result)) {
@@ -71,23 +73,20 @@ export function TransactionHistory() {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
-  const getTransactionIcon = (action: string) => {
-    switch (normalizeAction(action)) {
-      case 'deposit':
-        return <ArrowDownCircle className="h-4 w-4" />;
-      case 'withdraw':
-        return <ArrowUpCircle className="h-4 w-4" />;
-      case 'transfer_in':
-        return <ArrowRightLeft className="h-4 w-4" />;
-      case 'transfer_out':
-        return <ArrowRightLeft className="h-4 w-4" />;
-      default:
-        return <IndianRupee className="h-4 w-4" />;
+  const getTransactionIcon = (actionRaw: unknown) => {
+    const action = normalizeAction(actionRaw);
+    switch (action) {
+      case 'deposit': return <ArrowDownCircle className="h-4 w-4" />;
+      case 'withdraw': return <ArrowUpCircle className="h-4 w-4" />;
+      case 'transfer_in': return <ArrowRightLeft className="h-4 w-4" />;
+      case 'transfer_out': return <ArrowRightLeft className="h-4 w-4" />;
+      default: return <IndianRupee className="h-4 w-4" />;
     }
   };
 
-  const getTransactionColor = (action: string) => {
-    switch (normalizeAction(action)) {
+  const getTransactionColor = (actionRaw: unknown) => {
+    const action = normalizeAction(actionRaw);
+    switch (action) {
       case 'deposit':
       case 'transfer_in':
         return 'text-emerald-600';
@@ -99,21 +98,25 @@ export function TransactionHistory() {
     }
   };
 
-  const formatDate = (timestamp: string) => {
-    const d = new Date(timestamp.replace(' ', 'T'));
+  const formatDate = (timestampRaw: unknown) => {
+    if (typeof timestampRaw !== 'string') return 'Invalid Date';
+
+    const d = new Date(timestampRaw.replace(' ', 'T'));
     return isNaN(d.getTime())
-      ? timestamp
+      ? timestampRaw
       : d.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  const formatAmount = (amount: number, action: string) => {
-    const kind = normalizeAction(action);
-    const isCredit = kind === 'deposit' || kind === 'transfer_in';
+  const formatAmount = (amtRaw: unknown, actionRaw: unknown) => {
+    if (typeof amtRaw !== 'number') return '₹0';
+
+    const action = normalizeAction(actionRaw);
+    const isCredit = action === 'deposit' || action === 'transfer_in';
     const prefix = isCredit ? '+' : '-';
-    return `${prefix}₹${Math.abs(amount).toLocaleString('en-IN')}`;
+    return `${prefix}₹${Math.abs(amtRaw).toLocaleString('en-IN')}`;
   };
 
-  const formDisabled = isLoading || formData.accountNumber.trim().length === 0 || formData.pin.trim().length !== 4;
+  const formDisabled = isLoading || formData.acc_no.trim().length === 0 || formData.pin.trim().length !== 4;
 
   return (
     <Card className="shadow-lg border-0 bg-white">
@@ -127,94 +130,78 @@ export function TransactionHistory() {
         </div>
       </CardHeader>
       <CardContent className="p-6">
+
+        {/* FORM */}
         <form onSubmit={handleSubmit} className="space-y-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="account" className="text-sm font-medium">Account Number</Label>
+              <Label>Account Number</Label>
               <Input
-                id="account"
                 type="text"
-                value={formData.accountNumber}
-                onChange={handleChange('accountNumber')}
+                value={formData.acc_no}
+                onChange={handleChange('acc_no')}
                 placeholder="e.g., AC10000000001"
                 required
-                autoComplete="off"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pin" className="text-sm font-medium">4-Digit PIN</Label>
+              <Label>4-Digit PIN</Label>
               <Input
-                id="pin"
                 type="password"
-                inputMode="numeric"
                 value={formData.pin}
                 onChange={handleChange('pin')}
                 placeholder="••••"
                 maxLength={4}
                 pattern="[0-9]{4}"
                 required
-                autoComplete="off"
               />
             </div>
           </div>
 
           <div className="flex space-x-2">
-            <Button type="submit" className="flex-1 bg-slate-600 hover:bg-slate-700 transition-all duration-200" disabled={formDisabled}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading History...
-                </>
-              ) : (
-                <>
-                  <HistoryIcon className="mr-2 h-4 w-4" /> Get Transaction History
-                </>
-              )}
+            <Button disabled={formDisabled} className="flex-1 bg-slate-600 hover:bg-slate-700">
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading...</> : <>Get History</>}
             </Button>
 
             {transactions.length > 0 && (
-              <Button type="button" onClick={handleRefresh} className="bg-emerald-600 hover:bg-emerald-700" disabled={isLoading}>
+              <Button onClick={handleRefresh} disabled={isLoading} className="bg-emerald-600 hover:bg-emerald-700">
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               </Button>
             )}
           </div>
         </form>
 
+        {/* ERROR */}
         {error && (
-          <Alert variant="destructive" className="animate-in fade-in-0 mb-4">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
+        {/* TRANSACTION LIST */}
         {transactions.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Transaction History for {formData.accountNumber}</h3>
-              <span className="text-sm text-gray-500">{transactions.length} transaction{transactions.length !== 1 ? 's' : ''}</span>
-            </div>
-
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {transactions.map((transaction) => (
-                <div key={transaction[0]} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {transactions.map((t) => {
+              const [id, , action, amount, timestamp] = t;
+              return (
+                <div key={id} className="p-4 bg-gray-50 rounded-lg flex justify-between border hover:bg-gray-100">
                   <div className="flex items-center space-x-3">
-                    {getTransactionIcon(transaction[2])}
+                    {getTransactionIcon(action)}
                     <div>
-                      <div className="font-medium text-gray-900 capitalize">{transaction[2]}</div>
+                      <div className="font-medium capitalize">{action || 'Unknown'}</div>
                       <div className="flex items-center text-xs text-gray-500 mt-1">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {formatDate(transaction[4])}
+                        <Calendar className="h-3 w-3 mr-1" /> {formatDate(timestamp)}
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`font-semibold ${getTransactionColor(transaction[2])}`}>
-                      {formatAmount(transaction[3], transaction[2])}
-                    </div>
+                  <div className={`font-semibold ${getTransactionColor(action)}`}>
+                    {formatAmount(amount, action)}
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         )}
       </CardContent>

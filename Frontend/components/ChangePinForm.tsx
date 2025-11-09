@@ -11,8 +11,8 @@ import { atmApi } from '@/lib/api';
 
 export function ChangePinForm() {
   const [formData, setFormData] = useState({
-    h: '',
-    oldPin: '',
+    acc_no: '',
+    Pin: '',
     newPin: '',
     confirmPin: '',
   });
@@ -39,7 +39,7 @@ export function ChangePinForm() {
       return;
     }
 
-    if (formData.newPin === formData.oldPin) {
+    if (formData.newPin === formData.Pin) {
       setError('New PIN cannot be the same as the old PIN');
       setIsLoading(false);
       return;
@@ -47,15 +47,15 @@ export function ChangePinForm() {
 
     try {
       const changePinData = {
-        h: formData.h,
-        oldpin: formData.oldPin,
+        acc_no: formData.acc_no,
+        pin: formData.Pin,
         newpin: formData.newPin,
         vnewpin: formData.confirmPin,
       };
 
       const result = await atmApi.changePin(changePinData) as { message: string };
       setSuccess(result.message);
-      setFormData({ h: '', oldPin: '', newPin: '', confirmPin: '' });
+      setFormData({ acc_no: '', Pin: '', newPin: '', confirmPin: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'PIN change failed');
     } finally {
@@ -91,8 +91,8 @@ export function ChangePinForm() {
             <Input
               id="account"
               type="text"
-              value={formData.h}
-              onChange={handleChange('h')}
+              value={formData.acc_no}
+              onChange={handleChange('acc_no')}
               placeholder="e.g., AC1001"
               required
             />
@@ -105,8 +105,8 @@ export function ChangePinForm() {
             <Input
               id="old-pin"
               type="password"
-              value={formData.oldPin}
-              onChange={handleChange('oldPin')}
+              value={formData.Pin}
+              onChange={handleChange('Pin')}
               placeholder="••••"
               maxLength={4}
               pattern="[0-9]{4}"
@@ -161,8 +161,8 @@ export function ChangePinForm() {
                   <span className="mr-2">{formData.newPin.match(/^\d+$/) ? '✓' : '○'}</span>
                   Numbers only
                 </div>
-                <div className={`flex items-center ${formData.newPin !== formData.oldPin && formData.newPin ? 'text-emerald-600' : 'text-gray-500'}`}>
-                  <span className="mr-2">{formData.newPin !== formData.oldPin && formData.newPin ? '✓' : '○'}</span>
+                <div className={`flex items-center ${formData.newPin !== formData.Pin && formData.newPin ? 'text-emerald-600' : 'text-gray-500'}`}>
+                  <span className="mr-2">{formData.newPin !== formData.Pin && formData.newPin ? '✓' : '○'}</span>
                   Different from current PIN
                 </div>
                 <div className={`flex items-center ${formData.newPin === formData.confirmPin && formData.newPin ? 'text-emerald-600' : 'text-gray-500'}`}>

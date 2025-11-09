@@ -11,9 +11,9 @@ import { atmApi } from '@/lib/api';
 
 export function TransferForm() {
   const [formData, setFormData] = useState({
-    h: '',
+    acc_no: '',
     pin: '',
-    toAccount: '',
+    rec_acc_no: '',
     amount: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -28,16 +28,16 @@ export function TransferForm() {
 
     try {
       const transferData = {
-        h: formData.h,
+        acc_no: formData.acc_no,
         pin: formData.pin,
-        toAccount: formData.toAccount, // Keep the form field name for UI consistency
+        rec_acc_no: formData.rec_acc_no, // Keep the form field name for UI consistency
         amount: parseInt(formData.amount),
       };
 
       const result = await atmApi.transfer(transferData);
       // Assert result type to access message property
       setSuccess((result as { message: string }).message);
-      setFormData({ h: '', pin: '', toAccount: '', amount: '' });
+      setFormData({ acc_no: '', pin: '', rec_acc_no: '', amount: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transfer failed');
     } finally {
@@ -74,8 +74,8 @@ export function TransferForm() {
               <Input
                 id="from-account"
                 type="text"
-                value={formData.h}
-                onChange={handleChange('h')}
+                value={formData.acc_no }
+                onChange={handleChange('acc_no')}
                 placeholder="e.g., AC1001"
                 required
               />
@@ -104,8 +104,8 @@ export function TransferForm() {
               <Input
                 id="to-account"
                 type="text"
-                value={formData.toAccount}
-                onChange={handleChange('toAccount')}
+                value={formData.rec_acc_no}
+                onChange={handleChange('rec_acc_no')}
                 placeholder="e.g., AC1002"
                 required
               />
@@ -128,17 +128,17 @@ export function TransferForm() {
           </div>
 
           {/* Transfer Summary */}
-          {formData.h && formData.toAccount && formData.amount && (
+          {formData.acc_no && formData.rec_acc_no && formData.amount && (
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
               <h4 className="font-medium text-purple-900 mb-2">Transfer Summary</h4>
               <div className="space-y-1 text-sm text-purple-800">
                 <div className="flex justify-between">
                   <span>From:</span>
-                  <span className="font-mono">{formData.h}</span>
+                  <span className="font-mono">{formData.acc_no}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>To:</span>
-                  <span className="font-mono">{formData.toAccount}</span>
+                  <span className="font-mono">{formData.rec_acc_no}</span>
                 </div>
                 <div className="flex justify-between font-medium">
                   <span>Amount:</span>

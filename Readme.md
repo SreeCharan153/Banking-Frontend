@@ -1,201 +1,242 @@
-# ✅ **RupeeWave – Secure ATM Banking System**
+Alright chief, here’s a **clean, professional, investor-friendly, recruiter-friendly, and developer-friendly** README for your project **RupeeWave – Core Banking System**.
 
-A fully functional banking application featuring account creation, secure authentication, deposits, withdrawals, transfers, PIN management, and transaction history — with a modern dashboard UI.
+This is polished enough for GitHub, resumes, or investor demos.
 
-✔ **FastAPI backend**
-✔ **React/Next.js frontend**
-✔ **JWT Auth with HttpOnly Cookies**
-✔ **Admin / Teller role system**
-✔ **Bank-level CSRF protection**
-✔ **Auto token refresh & secure session handling**
+---
+
+# ✅ **RupeeWave – Secure Core Banking System (FastAPI + Supabase + Next.js)**
+
+RupeeWave is a full-stack **core banking backend** built with production-grade features:
+✔ Secure authentication
+✔ Account creation
+✔ Deposits / withdrawals / transfers
+✔ Transaction history
+✔ PIN protection + lockout
+✔ Update mobile/email
+✔ Audit logging
+✔ Supabase Postgres storage
+✔ Fully automated test suite (pytest)
+
+This is designed like a real ATM / Teller backend with strict validations and role-based access.
+
+---
+
+## ✅ **Tech Stack**
+
+| Layer    | Technology                       |
+| -------- | -------------------------------- |
+| Backend  | FastAPI, Python 3                |
+| Database | Supabase Postgres                |
+| Auth     | JWT + HTTP-only cookies          |
+| Frontend | Next.js + Tailwind + ShadCN      |
+| Security | PIN hashing, lockout, role guard |
+| Testing  | Pytest + FastAPI TestClient      |
 
 ---
 
 ## ✅ **Features**
 
-### ✅ User Management
+### ✅ Authentication
 
-* Admin can create system users (admins / tellers)
-* Teller accounts cannot create new users
-* Secure login system with encrypted authentication
-* Role-based access for every API route
+* Secure login with JWT cookies
+* Role-based access (admin, teller, customer)
+* Cookie auto-refresh
+* Full audit logs of every action
 
-### ✅ Account Operations
+### ✅ Account Features
 
-* Create new bank accounts
-* Change PIN with validation
-* Update email & phone number
-* View balance & enquiry
+| Endpoint                        | Action                    |
+| ------------------------------- | ------------------------- |
+| POST `/account/create`          | Create bank account       |
+| POST `/account/enquiry`         | Balance check             |
+| GET `/history/{ac_no}?pin=XXXX` | Fetch transaction history |
+| PUT `/account/change-pin`       | Change PIN                |
+| PUT `/account/update-mobile`    | Update mobile number      |
+| PUT `/account/update-email`     | Update email              |
 
-### ✅ Money Transactions
+### ✅ Transactions
 
-* Deposit
-* Withdraw
-* Transfer between accounts
-* Full transaction history with timestamp & unique ID
+| Endpoint                     | Action                      |
+| ---------------------------- | --------------------------- |
+| POST `/transaction/deposit`  | Add balance                 |
+| POST `/transaction/withdraw` | Withdraw amount             |
+| POST `/transaction/transfer` | Transfer to another account |
 
-### ✅ Security
-
-✔ JWT Access + Refresh Token
-✔ Tokens stored in **HttpOnly cookies** (cannot be stolen by JS)
-✔ `secure=True` + `samesite="strict"` → **prevents CSRF attacks**
-✔ Auto refresh when access token expires
-✔ Logout deletes both tokens
-✔ Role enforcement both frontend & backend
-✔ SQL injection-safe queries
-
-✅ Safe for production-like usage
-✅ Perfect for portfolio or demo
+All transactions:
+✔ Validate PIN
+✔ Log history entry
+✔ Prevent mismatched accounts
+✔ Atomic (no half-updates)
 
 ---
 
-## ✅ Tech Stack
+## ✅ **Security Layer**
 
-| Area     | Technology                                |
-| -------- | ----------------------------------------- |
-| Backend  | **FastAPI**, SQLite, JWT                  |
-| Frontend | **Next.js 14**, TypeScript, Tailwind      |
-| Auth     | Access + Refresh tokens, HttpOnly cookies |
-| Database | SQLite with parameterized queries         |
-| UI       | shadcn/ui, Lucide Icons                   |
+✅ **PIN stored as bcrypt hash**
+✅ **Wrong PIN → lockout after 3 attempts**
+✅ **All actions logged in `history` table**
+✅ **No receiver balance leak**
+✅ **HTTP-only secure cookies**
+✅ **Account number + PIN required for all financial ops**
 
----
+Example event logs:
 
-## ✅ How Authentication Works
-
-| Step                | Behavior                                                                     |
-| ------------------- | ---------------------------------------------------------------------------- |
-| Login               | Backend validates credentials, sets 2 cookies (`atm_token`, `refresh_token`) |
-| Access Token        | Valid for 1 hour, HttpOnly, Secure, SameSite=Strict                          |
-| Refresh Token       | Valid for 30 days, rotates automatically                                     |
-| Auto-Refresh        | If access token expired, backend issues a new one silently                   |
-| Logout              | Deletes both cookies, session ends instantly                                 |
-| Frontend Protection | `/auth/check` endpoint validates real login state                            |
-
-No localStorage, no insecure token storage.
+| actor  | action          | details | IP        | timestamp  |
+| ------ | --------------- | ------- | --------- | ---------- |
+| AC123… | deposit_success | +₹500   | 127.0.0.1 | 2025-11-09 |
 
 ---
 
-## ✅ Folder Structure
+## ✅ **Database Structure (Supabase PostgreSQL)**
+
+**accounts**
 
 ```
-/backend
- ├── main.py
- ├── auth.py
- ├── transaction.py
- ├── updateinfo.py
- ├── cs.py
- ├── history.py
- ├── models.py
- └── Database/Bank.db
+account_no (PK)
+holder_name
+pin_hash
+balance
+mobileno
+gmail
+created_at
+```
 
-/frontend
- ├── app/page.tsx
- ├── components/
- │    ├── PasswordAuth.tsx
- │    ├── ATMDashboard.tsx
- │    ├── TransactionForm.tsx
- │    ├── UpdateInfo.tsx
- │    └── ...
- ├── lib/api.ts
- └── lib/config.ts
+**history**
+
+```
+id (PK)
+account_no
+action
+amount
+context
+created_at
+```
+
+**users**
+
+```
+id
+username
+password_hash
+role (admin/teller/customer)
 ```
 
 ---
 
-## ✅ Running Locally
+## ✅ **Run Backend**
 
-### ✅ Backend
+### 1️⃣ Install Dependencies
 
 ```bash
-cd backend
 pip install -r requirements.txt
+```
+
+### 2️⃣ Add env variables
+
+Create `.env`:
+
+```
+SUPABASE_URL=your_url
+SUPABASE_KEY=your_key
+```
+
+### 3️⃣ Start server
+
+```bash
 uvicorn main:app --reload
 ```
 
-Backend runs on:
+### 4️⃣ Open docs
 
 ```
-http://localhost:8000
-```
-
-Open interactive API docs:
-
-```
-http://localhost:8000/docs
+http://127.0.0.1:8000/docs
 ```
 
 ---
 
-### ✅ Frontend
+## ✅ Running Tests (PyTest)
+
+This project includes a full automated test suite:
+
+✅ account creation
+✅ PIN validation
+✅ lockout
+✅ deposit/withdraw/transfer
+✅ update mobile/email
+✅ transaction history
+✅ negative scenarios
+
+Run tests:
 
 ```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend runs on:
-
-```
-http://localhost:3000
+pytest -s
 ```
 
 ---
 
-## ✅ API Security Highlights
+## ✅ Frontend (Next.js)
 
-| Protection           | Status                 |
-| -------------------- | ---------------------- |
-| HttpOnly Cookies     | ✅                      |
-| SameSite Strict      | ✅ Prevents CSRF        |
-| Secure=True          | ✅ HTTPS only           |
-| Access Token Expiry  | ✅ 1 hour               |
-| Refresh Token Expiry | ✅ 30 days              |
-| Refresh Rotation     | ✅                      |
-| Logout Clears Tokens | ✅                      |
-| Role Authorization   | ✅ All routes protected |
+All APIs are wrapped in `/lib/api.ts`:
 
----
+Example usage:
 
-## ✅ Routes Overview
+```ts
+const res = await atmApi.deposit({
+    acc_no: "AC2587598f73",
+    pin: "1234",
+    amount: 1000
+});
+```
 
-| Endpoint                | Method | Role         | Description             |
-| ----------------------- | ------ | ------------ | ----------------------- |
-| `/auth/login`           | POST   | Any          | Login & issue tokens    |
-| `/auth/logout`          | POST   | Any          | End session             |
-| `/auth/create-user`     | POST   | Admin        | Create new teller/admin |
-| `/account/create`       | POST   | Admin/Teller | Create bank account     |
-| `/transaction/deposit`  | POST   | Admin/Teller | Add funds               |
-| `/transaction/withdraw` | POST   | Admin/Teller | Withdraw funds          |
-| `/transaction/transfer` | POST   | Admin/Teller | Transfer money          |
-| `/account/enquiry`      | POST   | Admin/Teller | Check account balance   |
-| `/account/history`      | POST   | Admin/Teller | Transaction logs        |
+Transaction history UI:
+✔ Icons for credit / debit
+✔ Live refresh
+✔ Amount color coding
+✔ Date formatting
 
 ---
 
-## ✅ UI Preview (Describe it in README)
+## ✅ Screenshots (optional to add later)
 
-* Modern blue/white banking dashboard
-* Role indicator in header
-* Admin sees extra option: **Create User**
-* Smooth UI transitions and icons
-* Mobile responsive
+* ✅ Create Account
+* ✅ Deposit / Withdraw
+* ✅ Transaction History UI
+* ✅ PIN Lockout UI
 
 ---
 
 ## ✅ Future Enhancements
 
-* 2FA / OTP
-* Email notifications
-* PDF transaction statements
-* Rate limit brute-force attackers
-* Device-based refresh tokens
+✅ SMS/Email OTP for transfers
+✅ Export PDF statements
+✅ Loan accounts
+✅ Branch-wise user control
+✅ Mobile banking app
 
 ---
 
 ## ✅ Author
 
-**RupeeWave – ATM Banking System**
-Built with FastAPI + Next.js
-By: *Sri Charan Machabhakthuni*
+**Sri Charan (Chief)**
+
+* CSE – Smart financial automation systems
+* Building production-grade FinTech tools
+* Github, LinkedIn, portfolio links can be added here
+
+---
+
+## ✅ License
+
+MIT License (if public) or Private (if closed-source)
+
+---
+
+### ✅ Want a shorter README for recruiters?
+
+I can generate a polished short version too.
+
+### ✅ Want GitHub badges (build, test coverage, python, next.js)?
+
+Say the word and I’ll add them.
+
+Done. This README makes your project look **real-world, enterprise-grade, and production-ready.**

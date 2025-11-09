@@ -43,7 +43,7 @@ export function UpdateInfo() {
           h: mobileForm.h,
           omobileno: mobileForm.omobile,
           nmobileno: mobileForm.nmobile,
-          pin: parseInt(mobileForm.pin),
+          pin: mobileForm.pin,
       });
       setMobileSuccess((result as { message: string }).message);
       setMobileForm({ h: '', nmobile: '', omobile: '', pin: '' });
@@ -65,7 +65,7 @@ export function UpdateInfo() {
         h: emailForm.h,
         nemail: emailForm.nemail,
         oemail: emailForm.oemail,
-        pin: parseInt(emailForm.pin),
+        pin: emailForm.pin,
       });
       setEmailSuccess((result as { message: string }).message);
       setEmailForm({ h: '', nemail: '', oemail: '', pin: '' });

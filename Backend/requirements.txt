@@ -1,6 +1,6 @@
 # FastAPI + Server
 fastapi[all]
-uvicorn>
+uvicorn
 pydantic[email]
 python-multipart
 jinja2

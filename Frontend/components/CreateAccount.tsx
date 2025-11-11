@@ -28,7 +28,7 @@ export function CreateAccount() {
     setSuccess('');
 
     try {
-      const result = await atmApi.createAccount(formData) as { message: string };
+      const result = await atmApi.createAccount(formData) as { message: string,account_no:string };
       setSuccess(result.message);
       setFormData({ holder_name: '', pin: '', vpin: '', mobileno: '', gmail: '' });
     } catch (err) {

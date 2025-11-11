@@ -74,13 +74,13 @@ const handleLogout = async () => {
       : []),
 
 
-    {
+    ...(role !== 'customer'?[{
       id: 'create-account' as const,
       label: 'Create Account',
       icon: UserPlus,
       color: 'bg-emerald-500 hover:bg-emerald-600',
       description: 'Register new account holder'
-    },
+    }]:[]),
     {
       id: 'deposit' as const,
       label: 'Deposit Money',

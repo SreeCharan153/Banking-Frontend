@@ -1,7 +1,7 @@
 # auth.py
 from bcrypt import hashpw, gensalt, checkpw
 import uuid
-from typing import Tuple
+from typing import Tuple, Any
 from supabase_client import supabase
 from fastapi import Request
 
@@ -13,16 +13,16 @@ class Auth:
         try:
             response = (
                 self.db.table("users")
-                .select("*")
+                .select("id, user_name, role, password")
                 .eq("user_name", username)
+                .single()
                 .execute()
             )
         except Exception as e:
             print(f"[DB ERROR] {e}")
             return None
-    
-        return response.data[0] if response.data else None
-    
+        return response.data if response.data else None
+
     def log_event(self, actor: str, action: str, details: str, request: Request):
         try:
             ip = request.client.host if request.client else "unknown"
@@ -40,11 +40,9 @@ class Auth:
             "ip": ip,
             "user_agent": ua,
         }
-
         try:
             self.db.table("audit_logs").insert(data).execute()
         except Exception as e:
-            # Don’t crash user flow because logging failed
             print(f"[LOGGING ERROR] {e}")
             pass
 
@@ -54,14 +52,11 @@ class Auth:
     def verify_pin(self, pin: str, hashed_pin: str) -> bool:
         return checkpw(pin.encode(), hashed_pin.encode())
 
-    # Generate unique Account No safely
     def generate_account_no(self) -> str:
         return "AC" + str(uuid.uuid4()).replace("-", "")[:10]
 
-    # Create account
+    # ✅ Create bank account + link to user_id
     def create(self, holder: str, pin: str, vpin: str, mobileno: str, gmail: str) -> Tuple[bool, str]:
-        
-        # Basic validations
         if len(pin) != 4 or not pin.isdigit():
             return False, "PIN must be 4 digits."
         if pin != vpin:
@@ -70,11 +65,13 @@ class Auth:
             return False, "Invalid mobile number."
         if '@' not in gmail or gmail.count("@") != 1:
             return False, "Invalid email."
+
         try:
             account_no = self.generate_account_no()
             hashed = self.hash_pin(pin)
         except Exception as e:
             return False, f"Server Error: {e}"
+
         try:
             data = {
                 "account_no": account_no,
@@ -85,24 +82,22 @@ class Auth:
                 "failed_attempts": 0,
                 "is_locked": 0,
             }
-
-            response = self.db.table("accounts").insert(data).execute()
+            self.db.table("accounts").insert(data).execute()
             return True, f"Account created: {account_no}"
-
         except Exception as e:
             msg = str(e).lower()
             if "duplicate" in msg or "unique constraint" in msg:
                 return False, "Account already exists."
             return False, f"Database Error: {e}"
 
-    # Create employee/user (admin/teller)
+    # ✅ Create staff/user (admin / teller / customer)
     def create_employ(self, username: str, pas: str, role: str) -> Tuple[bool, str]:
         try:
             hashed = self.hash_pin(pas)
-            response = self.db.table("users").insert({
+            self.db.table("users").insert({
                 "user_name": username,
                 "password": hashed,
-                "role": role
+                "role": role  # stored in DB, not JWT
             }).execute()
             return True, f"User created: {username}"
         except Exception as e:
@@ -111,107 +106,73 @@ class Auth:
                 return False, "Username already exists."
             return False, f"Database Error: {e}"
 
-    # Secure password check (fixed: use checkpw instead of re-hashing)
-    def password_check(self, username: str, pw: str) -> bool:
+    # ✅ Username/password verification
+    def password_check(self, username: str, pw: str) -> Any:
         try:
-            response = (
+            resp = (
                 self.db.table("users")
                 .select("password")
                 .eq("user_name", username)
+                .limit(1)
                 .execute()
             )
         except Exception as e:
             print(f"[DB ERROR] {e}")
-            return False  # can't verify password if DB failed
+            return [False,e]
 
-        # User not found
-        if not response.data:
-            return False
-
-        stored_hash = response.data[0]["password"]
-
+        if not resp.data:
+            return [False,resp.data]
+        stored_hash = resp.data[0]["password"]
         try:
             return checkpw(pw.encode(), stored_hash.encode())
         except Exception as e:
             print(f"[HASH ERROR] {e}")
-            return False
+            return [False,e]
 
-
-    # login recording (not auth token creation — kept separated)
-    def record_login_event(self, username: str) -> Tuple[bool, str]:
-        try:
-            response=(
-                self.db.table("users")
-                .select("id")
-                .eq("user_name", username)
-                .execute()
-            )
-            if not response.data:
-                return False, "User not found."
-            user_id = response.data[0]["id"]
-            response = (
-                self.db.table("logins")
-                .insert({"user_id": user_id})
-                .execute()
-            )
-        except Exception as e:
-            print(f"[LOGIN LOG ERROR] {e}")
-            return True, f"Login success (log failed silently)"
-        return True, f"Login recorded for {username}"
-
-    # PIN check WITH lockout
+    # ✅ PIN check + lockout
     def check(self, ac_no: str, pin: str, request: Request) -> Tuple[bool, str]:
         pin = str(pin).strip()
-
-        # ✅ Fetch account
         try:
             response = (
                 self.db.table("accounts")
                 .select("pin, failed_attempts, is_locked")
                 .eq("account_no", ac_no)
+                .single()
                 .execute()
             )
         except Exception as e:
             self.log_event("unknown", "pin_failed", f"DB Error: {e}", request)
             return False, "Server error. Try again."
 
-        if not response.data:
+        if not response or not response.data:
             self.log_event("unknown", "pin_failed", f"Account {ac_no} not found", request)
             return False, "Account not found."
 
-        stored_hash = response.data[0]["pin"]
-        attempts = response.data[0]["failed_attempts"] or 0
-        locked = response.data[0]["is_locked"]
+        stored_hash = response.data["pin"]
+        attempts = response.data["failed_attempts"] or 0
+        locked = response.data["is_locked"]
 
-        # ✅ If account is locked
         if locked:
             self.log_event(ac_no, "pin_failed", "Account locked", request)
             return False, "Account locked. Contact bank."
 
-        # ✅ PIN correct
         if self.verify_pin(pin, stored_hash):
             try:
                 self.db.table("accounts").update({"failed_attempts": 0}).eq("account_no", ac_no).execute()
             except:
-                pass  # Don't block success if logging fails
-
+                pass
             self.log_event(ac_no, "pin_success", "PIN verified", request)
             return True, "PIN verified."
 
-        # ❌ PIN wrong
         attempts += 1
-
-        # ✅ Lock after 3 failures
         if attempts >= 3:
             try:
                 self.db.table("accounts").update({"failed_attempts": attempts, "is_locked": True}).eq("account_no", ac_no).execute()
             except:
                 pass
-
             self.log_event(ac_no, "account_locked", "3 wrong attempts", request)
             return False, "Account locked after 3 wrong PIN attempts."
 
-        # ✅ Update failed attempts
         try:
             self.db.table("accounts").update({"failed_attempts": attempts}).eq("account_no", ac_no).execute()
         except:
@@ -219,4 +180,3 @@ class Auth:
 
         self.log_event(ac_no, "pin_failed", f"Wrong PIN, {3-attempts} tries left", request)
         return False, f"Wrong PIN. {3 - attempts} tries left."
-

@@ -132,6 +132,21 @@ RupeeWave/
 
 ---
 
+# 🖼️ UI Preview
+
+
+<p align="center">
+  <img src="./assets/previews/login ui.png" width="400" alt="Login Screen" />
+  <img src="./assets/previews/admin ui.png" width="400" alt="Dashboard" />
+</p>
+
+<p align="center">
+  <img src="./assets/previews/teller ui.png" width="400" alt="Account Details" />
+  <img src="./assets/previews/customer ui.png" width="400" alt="Transactions" />
+</p>
+
+---
+
 # 🛠 Local Setup
 
 ### Backend

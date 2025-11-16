@@ -105,17 +105,9 @@ def clear_cookie(response: Response, key: str):
 @app.middleware("http")
 async def attach_supabase(request: Request, call_next):
     token = request.cookies.get("atm_token")
-    # debug - remove after confirming
-    print("incoming token:", token)
 
     client = get_client(token)
-    print("postgrest headers:", client.postgrest.headers)
 
-    # optional quick RPC debug - remove in prod
-    try:
-        print("debug_claims:", client.rpc("debug_claims").execute())
-    except Exception as e:
-        print("debug_claims error:", e)
 
     request.state.supabase = client
     request.state.service = get_service_client()
@@ -226,7 +218,6 @@ def create_user(data: CreateUserRequest, _: Dict = Depends(require_roles("admin"
 @app.post("/auth/login")
 def login(response: Response, request: Request, username: str = Form(...), password: str = Form(...)):
     client = get_service_client()
-    print(Client)
 
     if not auth.password_check(username, password):
         auth.log_event(username, "login_failed", "Wrong password", request)

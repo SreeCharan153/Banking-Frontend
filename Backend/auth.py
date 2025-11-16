@@ -19,7 +19,6 @@ class Auth:
                 .execute()
             )
         except Exception as e:
-            print(f"[DB ERROR] {e}")
             return None
         return response.data if response.data else None
 
@@ -43,7 +42,6 @@ class Auth:
         try:
             self.db.table("app_audit_logs").insert(data).execute()
         except Exception as e:
-            print(f"[LOGGING ERROR] {e}")
             pass
 
     def hash_pin(self, pin: str) -> str:
@@ -152,7 +150,6 @@ class Auth:
                 .limit(1)
                 .execute()
             )
-            print(resp)
         except Exception:
             return False
 

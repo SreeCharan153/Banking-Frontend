@@ -89,6 +89,23 @@ Modern banking simulation with full authentication, RLS-backed authorization, tr
 
 ---
 
+# 📜 Permission Matrix
+
+| Capability                  | Customer | Teller            | Admin |
+| --------------------------- | -------- | ----------------- | ----- |
+| Create Account              | ❌        | ✅                 | ✅     |
+| View Own Balance            | ✅        | ✅                 | ✅     |
+| Deposit / Withdraw          | ✅ (self) | ✅ (for customers) | ✅     |
+| Transfer                    | ✅ (self) | ✅ (for customers) | ✅     |
+| Change PIN / Email / Mobile | ✅ (own)  | ✅ (for customers) | ✅     |
+| View All Users              | ❌        | ✅                 | ✅     |
+| Create New User             | ❌        | ❌                 | ✅     |
+| View Audit Logs             | ❌        | ✅                 | ✅     |
+| Delete Users / Accounts     | ❌        | ❌                 | ✅     |
+| Manage Roles                | ❌        | ❌                 | ✅     |
+
+---
+
 # 📂 Project Structure
 
 ```
@@ -120,15 +137,13 @@ RupeeWave/
 ### Backend
 
 ```bash
-cd Backend
-pip install -r requirements.txt
+yarn install # or pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
 ### Frontend
 
 ```bash
-cd Frontend
 npm install
 npm run dev
 ```
@@ -171,8 +186,6 @@ Covers:
 
 # 🤝 Contributing
 
-We welcome all contributions!
-
 ### 1. Fork the repo
 
 ### 2. Create your feature branch
@@ -199,12 +212,6 @@ git push origin feature/amazing-feature
 
 # 🐞 Filing Issues
 
-Before creating a new issue:
-
-* Search existing issues
-* Provide clear reproduction steps
-* Include backend & frontend logs (if relevant)
-
 Bug reports should include:
 
 ```
@@ -226,7 +233,7 @@ Alternatives:
 
 # 📜 License
 
-This project is licensed under the **MIT License**.
+MIT License
 
 ---
 
@@ -239,11 +246,6 @@ Full-stack engineer | Python backend specialist
 
 # ⭐ Support the Project
 
-If you like the project:
-
-* ⭐ Star the repo
-* 🔗 Share it
-* 🧩 Contribute
 <p align="center">
   <img src="./assets/branding/branding-overview.png.png" width="800" />
 </p>

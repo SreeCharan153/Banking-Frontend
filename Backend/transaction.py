@@ -43,8 +43,10 @@ class Transaction:
             return False, f"Deposit failed: {e}"
 
         self.auth.log_event(ac_no, "deposit_success", f"Deposited {amount}", request)
-        resp = self.db.table("accounts").select("balance").eq("account_no", ac_no).single().execute()
-        new_balance = resp.data["balance"]
+        resp = self.db.table("accounts").select("balance").eq("account_no", ac_no).execute()
+        if not resp.data:
+            return False, "Account not found after deposit."
+        new_balance = resp.data[0]["balance"]
         return True, f"Deposit successful. New balance: {new_balance}"
 
 

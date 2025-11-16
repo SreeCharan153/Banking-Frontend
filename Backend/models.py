@@ -23,8 +23,8 @@ class TransferRequest(TransactionRequest):
 
 class CreateUserRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=32)
-    pas: str = Field(..., min_length=6, max_length=64)
-    vps: str = Field(..., min_length=6, max_length=64)
+    pas: str = Field(..., min_length=4, max_length=64)
+    vps: str = Field(..., min_length=4, max_length=64)
     role: UserRole
 
 class CreateAccountRequest(BaseModel):

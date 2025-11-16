@@ -1,9 +1,9 @@
 # auth.py
 from bcrypt import hashpw, gensalt, checkpw
-import uuid
 from typing import Tuple, Any
 from supabase_client import supabase
 from fastapi import Request
+import random
 
 class Auth:
     def __init__(self):
@@ -41,7 +41,7 @@ class Auth:
             "user_agent": ua,
         }
         try:
-            self.db.table("audit_logs").insert(data).execute()
+            self.db.table("app_audit_logs").insert(data).execute()
         except Exception as e:
             print(f"[LOGGING ERROR] {e}")
             pass
@@ -53,10 +53,12 @@ class Auth:
         return checkpw(pin.encode(), hashed_pin.encode())
 
     def generate_account_no(self) -> str:
-        return "AC" + str(uuid.uuid4()).replace("-", "")[:10]
+        return "AC" + str(random.randint(10**9, 10**10 - 1))
 
     # ✅ Create bank account + link to user_id
-    def create(self, holder: str, pin: str, vpin: str, mobileno: str, gmail: str) -> Tuple[bool, str]:
+    def create(self, holder: str, pin: str, vpin: str, mobileno: str, gmail: str) -> Tuple[bool, Any]:
+
+        # Validation
         if len(pin) != 4 or not pin.isdigit():
             return False, "PIN must be 4 digits."
         if pin != vpin:
@@ -67,28 +69,62 @@ class Auth:
             return False, "Invalid email."
 
         try:
-            account_no = self.generate_account_no()
+            account_no = str(self.generate_account_no())
             hashed = self.hash_pin(pin)
         except Exception as e:
             return False, f"Server Error: {e}"
 
+        # Insert user (username = account number)
         try:
-            data = {
-                "account_no": account_no,
-                "name": holder,
-                "pin": hashed,
-                "mobileno": mobileno,
-                "gmail": gmail,
-                "failed_attempts": 0,
-                "is_locked": 0,
-            }
-            self.db.table("accounts").insert(data).execute()
-            return True, f"Account created: {account_no}"
+            user_res = (
+                self.db.table("users")
+                .insert({
+                    "user_name": account_no,
+                    "password": hashed,
+                    "role": "customer",
+                })
+                .execute()
+            )
         except Exception as e:
             msg = str(e).lower()
-            if "duplicate" in msg or "unique constraint" in msg:
+            if "duplicate" in msg:
+                return False, "User already exists."
+            return False, f"User creation failed: {e}"
+
+        if not user_res.data:
+            return False, "User insert failed."
+
+        user_id = user_res.data[0]["id"]
+
+        # Insert account linked to that user
+        try:
+            acc_res = (
+                self.db.table("accounts")
+                .insert({
+                    "account_no": account_no,
+                    "name": holder,
+                    "pin": hashed,
+                    "mobileno": mobileno,
+                    "gmail": gmail,
+                    "failed_attempts": 0,
+                    "is_locked": 0,
+                    "user_id": user_id,
+                })
+                .execute()
+            )
+        except Exception as e:
+            # rollback user if account insert fails
+            self.db.table("users").delete().eq("id", user_id).execute()
+
+            msg = str(e).lower()
+            if "duplicate" in msg:
                 return False, "Account already exists."
             return False, f"Database Error: {e}"
+
+        return True, {
+            "account_no": account_no,
+            "message": f"Account created successfully with Acc_No {account_no}"
+        }
 
     # ✅ Create staff/user (admin / teller / customer)
     def create_employ(self, username: str, pas: str, role: str) -> Tuple[bool, str]:
@@ -116,18 +152,15 @@ class Auth:
                 .limit(1)
                 .execute()
             )
-        except Exception as e:
-            print(f"[DB ERROR] {e}")
-            return [False,e]
+            print(resp)
+        except Exception:
+            return False
 
         if not resp.data:
-            return [False,resp.data]
+            return False
+
         stored_hash = resp.data[0]["password"]
-        try:
-            return checkpw(pw.encode(), stored_hash.encode())
-        except Exception as e:
-            print(f"[HASH ERROR] {e}")
-            return [False,e]
+        return checkpw(pw.encode(), stored_hash.encode())
 
     # ✅ PIN check + lockout
     def check(self, ac_no: str, pin: str, request: Request) -> Tuple[bool, str]:

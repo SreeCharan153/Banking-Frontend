@@ -1,105 +1,123 @@
-# 🏦 RupeeWave – Secure Banking ATM System  
-A production-grade banking simulation with full authentication, account operations, transaction processing, and audit logging built using FastAPI + Supabase + Next.js.
+# 📌 **RupeeWave – Secure Banking ATM System**
+
+Modern banking simulation with full authentication, RLS-backed authorization, transaction processing and audit logs built on **FastAPI + Supabase + Next.js**.
+
+<p align="center">
+  <img src="./assets/branding/banner-dark-blueprint.png.png" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge">
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Supabase-Postgres-3ECF8E?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Next.js-Frontend-black?style=for-the-badge">
+  <img src="https://img.shields.io/badge/JWT-HttpOnly-orange?style=for-the-badge">
+  <img src="https://img.shields.io/badge/Tests-Pytest-green?style=for-the-badge">
+</p>
 
 ---
 
-![Python](https://img.shields.io/badge/Python-3.12-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-Powered%20API-009688)
-![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E)
-![NextJS](https://img.shields.io/badge/Next.js-Frontend-black)
-![JWT](https://img.shields.io/badge/Auth-JWT%20Cookies-orange)
-![Tests](https://img.shields.io/badge/Tests-Pytest-green)
-![Deploy](https://img.shields.io/badge/Deployed-Vercel%20%2B%20Render-green)
+# 🚀 Live Links
+
+| Component                | URL                                                              |
+| ------------------------ | ---------------------------------------------------------------- |
+| 🖥️ **Frontend**         | [https://rupeewave.vercel.app](https://rupeewave.vercel.app)     |
+| ⚙️ **Backend (Swagger)** | [https://rupeewave.onrender.com](https://rupeewave.onrender.com) |
 
 ---
 
-## ✅ Live Demo
+# 🧠 Architecture
 
-| Component | URL |
-|-----------|-----|
-| ✅ **Frontend (Admin/Teller UI)** | https://rupeewave.vercel.app/ |
-| ✅ **Backend (FastAPI + Swagger UI)** | https://rupeewave.onrender.com |
-
----
-
-## 🚀 Overview
-
-RupeeWave is a full banking system with:
-
-✅ Admin/Teller authentication via **JWT HttpOnly Cookies**  
-✅ Multiple account operations  
-✅ Secure PIN system + lockout  
-✅ Full transaction history logging  
-✅ Automated backend tests  
-✅ Deployed and publicly usable
-
----
-
-## 🔥 Features
-
-### ✅ Authentication
-- Login using JWT
-- Cookies stored securely (no localStorage)
-- Refresh token rotation
-- Auto-session renew
-- PIN validation with lockout after 3 cracks
-
-### ✅ Account Operations
-- Create account
-- Update Email / Mobile
-- Change PIN
-- Balance enquiry
-
-### ✅ Transactions
-- Deposit
-- Withdraw
-- Transfer
-- Each action logged in history
-
-### ✅ History
-- Every transaction is timestamped
-- Sorted newest → oldest
-- Transfer tracking (transfer in / out)
+```
+               ┌───────────────────────────┐
+               │         Frontend          │
+               │   Next.js + ShadCN UI     │
+               │   Sends cookies w/ fetch  │
+               └────────────┬──────────────┘
+                            │ HttpOnly Cookies
+                            ▼
+               ┌───────────────────────────┐
+               │          Backend          │
+               │     FastAPI + JWT         │
+               │ Access + Refresh tokens   │
+               └────────────┬──────────────┘
+                            │ RLS Enforced
+                            ▼
+               ┌───────────────────────────┐
+               │         Supabase          │
+               │ Postgres + RLS Policies   │
+               │ Audit Logs + RPCs         │
+               └───────────────────────────┘
+```
 
 ---
 
-## 🛠 Tech Stack
+# 🎯 Features Overview
 
-| Layer | Technology |
-|-------|------------|
-| Backend | FastAPI |
-| Database | Supabase (Postgres) |
-| Auth | JWT with HttpOnly Cookies |
-| Frontend | Next.js + TypeScript + ShadCN UI |
-| Testing | Pytest |
-| Deployment | Render (Backend), Vercel (Frontend) |
+### 🔐 Authentication
+
+* Admin / Teller login
+* JWT Access & Refresh (HttpOnly)
+* Auto token refresh
+* Bruteforce protection (PIN lockout)
+* Full audit logs (IP + User-Agent)
+
+### 🏦 Accounts
+
+* Create new account
+* Update mobile/email
+* Change PIN
+* Balance check
+
+### 💸 Transactions
+
+* Deposit / Withdraw / Transfer
+* Atomic RPC functions
+* Fully logged
+
+### 📜 History + Audit
+
+* Transaction timeline
+* Transfer IN/OUT classification
+* Audit logs on admin/teller activity
 
 ---
 
-## 📌 API Endpoints
-
-| Method | Endpoint | Description | Roles |
-|--------|----------|-------------|-------|
-| POST | `/auth/login` | Login | Admin / Teller |
-| POST | `/auth/create-user` | Create system user | Admin |
-| POST | `/account/create` | Open bank account | Admin / Teller |
-| POST | `/transaction/deposit` | Deposit money | Admin / Teller |
-| POST | `/transaction/withdraw` | Withdraw money | Admin / Teller |
-| POST | `/transaction/transfer` | Transfer funds | Admin / Teller |
-| POST | `/account/enquiry` | Balance check | Admin / Teller |
-| GET | `/history/{acc_no}?pin=1234` | Transaction history | Admin / Teller |
+<p align="center">
+  <img src="./assets/branding/icons-fullset.png.png" width="600" />
+</p>
 
 ---
 
-## ✅ Running Locally
+# 📂 Project Structure
 
-### 1️⃣ Clone
-```bash
-git clone https://github.com/yourname/rupeewave.git
-cd rupeewave
-````
+```
+RupeeWave/
+│
+├── Backend/
+│   ├── main.py
+│   ├── auth/
+│   ├── accounts/
+│   ├── transactions/
+│   ├── tests/
+│   └── utils/
+│
+├── Frontend/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   └── hooks/
+│
+├── README.md
+├── LICENSE
+└── CONTRIBUTING.md
+```
 
-### 2️⃣ Backend Setup
+---
+
+# 🛠 Local Setup
+
+### Backend
 
 ```bash
 cd Backend
@@ -107,7 +125,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-### 3️⃣ Frontend Setup
+### Frontend
 
 ```bash
 cd Frontend
@@ -117,7 +135,7 @@ npm run dev
 
 ---
 
-## ✅ Automated Testing
+# 🧪 Tests (Pytest)
 
 ```bash
 pytest -v
@@ -125,49 +143,107 @@ pytest -v
 
 Covers:
 
-* Account creation
-* Deposits / Withdrawals / Transfers
-* History responses
+* User & account creation
+* Deposit, withdraw, transfer
 * PIN security
-* Mobile & email updates
+* History validation
 
 ---
 
-## ✅ Security
+# 🔒 Security Practices
 
-✔ HttpOnly cookies (cannot be accessed by JS)
-✔ Token refresh flow
-✔ PIN lockout & validation
-✔ Full logging of every event
-✔ Input validation at request + DB level
-
----
-
-## ✅ Future Upgrades
-
-✅ Customer self-service UI
-✅ SMS / Email transaction alerts
-✅ PDF statements
-✅ Teller dashboard with analytics
+* Cookies are HttpOnly + Secure
+* No tokens stored in JS
+* RLS policies for all tables
+* Auditing for every transaction
+* Argument validation at DB + API level
 
 ---
 
-## 📎 Project Links
+# 📈 Future Enhancements
 
-| Component       | URL                                                              |
-| --------------- | ---------------------------------------------------------------- |
-| ✅ Frontend Live | [https://rupeewave.vercel.app/](https://rupeewave.vercel.app/)   |
-| ✅ Backend Live  | [https://rupeewave.onrender.com](https://rupeewave.onrender.com) |
-
----
-
-## ❤️ Credits
-
-Developer: **Sri CHaran Machabhakthuni**
-Backend: FastAPI
-Frontend: Next.js
-Database: Supabase
+* Customer Portal
+* Teller analytics dashboard
+* PDF statements
+* SMS/Email alerts
 
 ---
 
-### ⭐ If this project helped you, star the repo and share it!
+# 🤝 Contributing
+
+We welcome all contributions!
+
+### 1. Fork the repo
+
+### 2. Create your feature branch
+
+```bash
+git checkout -b feature/amazing-feature
+```
+
+### 3. Commit changes
+
+```bash
+git commit -m "Add amazing feature"
+```
+
+### 4. Push
+
+```bash
+git push origin feature/amazing-feature
+```
+
+### 5. Open a Pull Request 🎉
+
+---
+
+# 🐞 Filing Issues
+
+Before creating a new issue:
+
+* Search existing issues
+* Provide clear reproduction steps
+* Include backend & frontend logs (if relevant)
+
+Bug reports should include:
+
+```
+Steps to reproduce:
+Expected behavior:
+Actual behavior:
+Environment:
+```
+
+Feature requests should include:
+
+```
+Use case:
+Proposed solution:
+Alternatives:
+```
+
+---
+
+# 📜 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+# 🧑‍💻 Author
+
+**Sri Charan Machabhakthuni**
+Full-stack engineer | Python backend specialist
+
+---
+
+# ⭐ Support the Project
+
+If you like the project:
+
+* ⭐ Star the repo
+* 🔗 Share it
+* 🧩 Contribute
+<p align="center">
+  <img src="./assets/branding/branding-overview.png.png" width="800" />
+</p>

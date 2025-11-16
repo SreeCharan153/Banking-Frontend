@@ -1,16 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import Image from "next/image";   // ✅ added
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CreditCard, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { atmApi } from '@/lib/api';
 
 interface PasswordAuthProps {
-  onAuthenticated: (role: string) => void;
+  onAuthenticated: (role: string, userName: string) => void;
 }
 
 export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
@@ -28,10 +29,7 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
 
     try {
       const res = await atmApi.login(formData.userId, formData.password);
-
-      // ✅ send role to page.tsx
-      onAuthenticated(res.role);
-
+      onAuthenticated(res.role, res.user_name);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
@@ -49,9 +47,18 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md shadow-xl border-0 bg-white/95 backdrop-blur">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center">
-            <CreditCard className="h-8 w-8 text-white" />
+          
+          {/* ✅ Replaced credit-card icon with RupeeWave logo */}
+          <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center bg-transparent">
+            <Image
+              src="/branding/logo-symbol-dark.png"
+              width={70}
+              height={70}
+              alt="RupeeWave Logo"
+              className="opacity-90"
+            />
           </div>
+
           <div>
             <CardTitle className="text-2xl font-bold text-gray-900">
               ATM Login
@@ -61,6 +68,7 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
             </CardDescription>
           </div>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -97,7 +105,14 @@ export function PasswordAuth({ onAuthenticated }: PasswordAuthProps) {
               className="w-full bg-blue-900 hover:bg-blue-800"
               disabled={isLoading}
             >
-              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Authenticating...</> : 'Login to ATM'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Authenticating...
+                </>
+              ) : (
+                'Login to ATM'
+              )}
             </Button>
           </form>
         </CardContent>

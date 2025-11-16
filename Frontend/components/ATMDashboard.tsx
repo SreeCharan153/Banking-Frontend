@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from "next/image";   // <— added for logo support
 import { CreateAccount } from './CreateAccount';
 import { CreateUser } from './createUser';
 import { TransactionForm } from './TransactionForm';
@@ -20,7 +21,6 @@ import {
   ArrowUpCircle,
   ArrowRightLeft,
   Settings,
-  Banknote,
   Users,
   Search,
   KeyRound,
@@ -42,23 +42,23 @@ type ActiveTab =
 
 interface DashboardProps {
   role?: string;
+  userName?: string;
   onLogout?: () => void;
 }
 
-export function ATMDashboard({ role, onLogout }: DashboardProps) {
+export function ATMDashboard({ role, userName, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
-  // ✅ logout function
-const handleLogout = async () => {
-  try {
-    await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch {}
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {}
 
-  if (onLogout) onLogout();  // ✅ send signal to parent
-};
+    if (onLogout) onLogout();
+  };
 
   const menuItems = [
     ...(role === 'admin'
@@ -73,14 +73,14 @@ const handleLogout = async () => {
         ]
       : []),
 
-
-    ...(role !== 'customer'?[{
+    ...(role !== 'customer' ? [{
       id: 'create-account' as const,
       label: 'Create Account',
       icon: UserPlus,
       color: 'bg-emerald-500 hover:bg-emerald-600',
       description: 'Register new account holder'
-    }]:[]),
+    }] : []),
+
     {
       id: 'deposit' as const,
       label: 'Deposit Money',
@@ -194,26 +194,34 @@ const handleLogout = async () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+
+            {/* LEFT HEADER (Logo + Title) */}
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center">
-                <Banknote className="h-6 w-6 text-white" />
-              </div>
+              <Image
+                src="/branding/logo-symbol-dark.png"
+                width={40}
+                height={40}
+                alt="RupeeWave Logo"
+                className="rounded-md"
+              />
+
               <div>
                 <h1 className="text-xl font-bold text-gray-900">ATM Management System</h1>
                 <p className="text-sm text-gray-600">Secure Banking Operations</p>
               </div>
             </div>
 
-            {/* ✅ Logout added here */}
+            {/* RIGHT HEADER (Auth + Logout) */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Shield className="h-5 w-5 text-emerald-500" />
                 <span className="text-sm text-gray-600">
-                  Authenticated ({role})
+                  Authenticated ({role}) - {userName}
                 </span>
               </div>
 
@@ -254,6 +262,7 @@ const handleLogout = async () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'overview' ? (
           <div className="space-y-8">
+
             {/* Welcome Section */}
             <div className="text-center space-y-4">
               <div className="mx-auto w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">

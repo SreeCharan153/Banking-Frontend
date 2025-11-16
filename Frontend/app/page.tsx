@@ -8,6 +8,7 @@ import { API_BASE_URL } from '@/lib/config';
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
 const checkAuth = async () => {
   try {
@@ -16,15 +17,18 @@ const checkAuth = async () => {
     if (!res.ok) {
       setIsAuthenticated(false);
       setRole(null);
+      setUserName(null);
       return;
     }
 
     const data = await res.json();
     setIsAuthenticated(true);
     setRole(data.role);
+    setUserName(data.user_name);
   } catch {
     setIsAuthenticated(false);
     setRole(null);
+    setUserName(null);
   }
 };
 
@@ -36,9 +40,10 @@ const checkAuth = async () => {
   if (!isAuthenticated)
     return (
       <PasswordAuth
-        onAuthenticated={(newRole) => {
+        onAuthenticated={(newRole, newUserName) => {
           setIsAuthenticated(true);
           setRole(newRole);
+          setUserName(newUserName);
         }}
       />
     );
@@ -46,9 +51,11 @@ const checkAuth = async () => {
   return (
     <ATMDashboard
       role={role || "teller"}
+      userName={userName || "User"}
       onLogout={() => {
         setIsAuthenticated(false);
         setRole(null);
+        setUserName(null);
       }}
     />
   );

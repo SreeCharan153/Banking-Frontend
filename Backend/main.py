@@ -237,6 +237,7 @@ def login(response: Response, request: Request, username: str = Form(...), passw
         raise HTTPException(404, "User not found")
 
     user_id = str(res.data[0]["uid"])
+    user_name = username
     app_role = res.data[0]["role"]
 
     access_token = make_access(user_id, app_role)
@@ -246,7 +247,7 @@ def login(response: Response, request: Request, username: str = Form(...), passw
     set_cookie(response, "refresh_token", refresh_token, max_age=int(REFRESH_TTL.total_seconds()))
 
     auth.log_event(username, "login_success", "User authenticated", request)
-    return {"success": True, "role": app_role}
+    return {"success": True, "role": app_role, "user_name": user_name}
 
 @app.post("/auth/logout")
 def logout(response: Response):

@@ -124,7 +124,7 @@ async def refresh_cookie_mw(request: Request, call_next):
 # -------- CORS --------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://rupeewave.vercel.app"],
+    allow_origins=["http://localhost:3000", "https://rupeewave.vercel.app" , "https://rupeewave.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -30,7 +30,7 @@ app = FastAPI(title="Banking ATM API", version="2.1")
 # -------- Security / Cookie helpers --------
 ENV = os.getenv("ENV", "dev").lower()  # dev|prod
 
-COOKIE_SECURE = False if ENV == "dev" else True
+COOKIE_SECURE = True
 COOKIE_SAMESITE = "none"  # change to "strict" if you don't embed cross-site
 ACCESS_TTL = timedelta(hours=1)
 REFRESH_TTL = timedelta(days=30)

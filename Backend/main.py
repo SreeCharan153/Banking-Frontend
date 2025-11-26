@@ -14,9 +14,8 @@ from supabase import create_client, Client
 from config import (
     SUPABASE_URL,
     SUPABASE_KEY,
-    JWT_SECRET,
+    SUPABASE_JWT_SECRET,
     SUPABASE_SERVICE_ROLE_KEY,
-    ALGORITHM,  # e.g. "HS256"
 )
 
 # ---- Services ----
@@ -37,6 +36,7 @@ from models import (
     TransferRequest,
 )
 
+ALGORITHM = "HS256"
 app = FastAPI(title="Banking ATM API", version="2.1")
 
 # -------- Security / Cookie helpers --------
@@ -75,12 +75,12 @@ def now_utc_ts() -> float:
 
 
 def encode_token(payload: Dict[str, Any]) -> str:
-    return jwt.encode(payload, JWT_SECRET, algorithm=ALGORITHM)
+    return jwt.encode(payload, SUPABASE_JWT_SECRET, algorithm=ALGORITHM)
 
 
 def decode_token(token: str) -> Dict[str, Any]:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=[ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")

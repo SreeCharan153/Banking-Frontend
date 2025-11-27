@@ -1,32 +1,33 @@
-# auth.py
 from bcrypt import hashpw, gensalt, checkpw
 from typing import Tuple, Any
-from supabase_client import supabase
 from fastapi import Request
 import random
+from supabase import Client
 
-class Auth:
+
+class AuthService:
     def __init__(self):
-        self.db = supabase
+        pass  # no DB stored here
 
-    def get_user(self, username: str):
+    def get_user(self, db: Client, username: str):
         try:
             response = (
-                self.db.table("users")
+                db.table("users")
                 .select("id, user_name, role, password")
                 .eq("user_name", username)
                 .single()
                 .execute()
             )
-        except Exception as e:
+        except Exception:
             return None
         return response.data if response.data else None
 
-    def log_event(self, actor: str, action: str, details: str, request: Request):
+    def log_event(self, db: Client, actor: str, action: str, details: str, request: Request):
         try:
             ip = request.client.host if request.client else "unknown"
         except Exception:
             ip = "unknown"
+
         try:
             ua = request.headers.get("user-agent", "unknown")
         except Exception:
@@ -39,9 +40,10 @@ class Auth:
             "ip": ip,
             "user_agent": ua,
         }
+
         try:
-            self.db.table("app_audit_logs").insert(data).execute()
-        except Exception as e:
+            db.table("app_audit_logs").insert(data).execute()
+        except Exception:
             pass
 
     def hash_pin(self, pin: str) -> str:
@@ -53,9 +55,7 @@ class Auth:
     def generate_account_no(self) -> str:
         return "AC" + str(random.randint(10**9, 10**10 - 1))
 
-    # ✅ Create bank account + link to user_id
-    def create(self, holder: str, pin: str, vpin: str, mobileno: str, gmail: str) -> Tuple[bool, Any]:
-
+    def create(self, db: Client, holder: str, pin: str, vpin: str, mobileno: str, gmail: str) -> Tuple[bool, Any]:
         # Validation
         if len(pin) != 4 or not pin.isdigit():
             return False, "PIN must be 4 digits."
@@ -72,10 +72,10 @@ class Auth:
         except Exception as e:
             return False, f"Server Error: {e}"
 
-        # Insert user (username = account number)
+        # Insert user
         try:
             user_res = (
-                self.db.table("users")
+                db.table("users")
                 .insert({
                     "user_name": account_no,
                     "password": hashed,
@@ -94,10 +94,10 @@ class Auth:
 
         user_id = user_res.data[0]["id"]
 
-        # Insert account linked to that user
+        # Insert account
         try:
             acc_res = (
-                self.db.table("accounts")
+                db.table("accounts")
                 .insert({
                     "account_no": account_no,
                     "name": holder,
@@ -111,8 +111,8 @@ class Auth:
                 .execute()
             )
         except Exception as e:
-            # rollback user if account insert fails
-            self.db.table("users").delete().eq("id", user_id).execute()
+            # rollback user
+            db.table("users").delete().eq("id", user_id).execute()
 
             msg = str(e).lower()
             if "duplicate" in msg:
@@ -124,14 +124,13 @@ class Auth:
             "message": f"Account created successfully with Acc_No {account_no}"
         }
 
-    # ✅ Create staff/user (admin / teller / customer)
-    def create_employ(self, username: str, pas: str, role: str) -> Tuple[bool, str]:
+    def create_employ(self, db: Client, username: str, pas: str, role: str) -> Tuple[bool, str]:
         try:
             hashed = self.hash_pin(pas)
-            self.db.table("users").insert({
+            db.table("users").insert({
                 "user_name": username,
                 "password": hashed,
-                "role": role  # stored in DB, not JWT
+                "role": role
             }).execute()
             return True, f"User created: {username}"
         except Exception as e:
@@ -140,11 +139,10 @@ class Auth:
                 return False, "Username already exists."
             return False, f"Database Error: {e}"
 
-    # ✅ Username/password verification
-    def password_check(self, username: str, pw: str) -> Any:
+    def password_check(self, db: Client, username: str, pw: str) -> Any:
         try:
             resp = (
-                self.db.table("users")
+                db.table("users")
                 .select("password")
                 .eq("user_name", username)
                 .limit(1)
@@ -159,23 +157,22 @@ class Auth:
         stored_hash = resp.data[0]["password"]
         return checkpw(pw.encode(), stored_hash.encode())
 
-    # ✅ PIN check + lockout
-    def check(self, ac_no: str, pin: str, request: Request) -> Tuple[bool, str]:
+    def check(self, db: Client, ac_no: str, pin: str, request: Request) -> Tuple[bool, str]:
         pin = str(pin).strip()
         try:
             response = (
-                self.db.table("accounts")
+                db.table("accounts")
                 .select("pin, failed_attempts, is_locked")
                 .eq("account_no", ac_no)
                 .single()
                 .execute()
             )
         except Exception as e:
-            self.log_event("unknown", "pin_failed", f"DB Error: {e}", request)
+            self.log_event(db, "unknown", "pin_failed", f"DB Error: {e}", request)
             return False, "Server error. Try again."
 
         if not response or not response.data:
-            self.log_event("unknown", "pin_failed", f"Account {ac_no} not found", request)
+            self.log_event(db, "unknown", "pin_failed", f"Account {ac_no} not found", request)
             return False, "Account not found."
 
         stored_hash = response.data["pin"]
@@ -183,30 +180,35 @@ class Auth:
         locked = response.data["is_locked"]
 
         if locked:
-            self.log_event(ac_no, "pin_failed", "Account locked", request)
+            self.log_event(db, ac_no, "pin_failed", "Account locked", request)
             return False, "Account locked. Contact bank."
 
         if self.verify_pin(pin, stored_hash):
             try:
-                self.db.table("accounts").update({"failed_attempts": 0}).eq("account_no", ac_no).execute()
+                db.table("accounts").update({"failed_attempts": 0}).eq("account_no", ac_no).execute()
             except:
                 pass
-            self.log_event(ac_no, "pin_success", "PIN verified", request)
+
+            self.log_event(db, ac_no, "pin_success", "PIN verified", request)
             return True, "PIN verified."
 
         attempts += 1
         if attempts >= 3:
             try:
-                self.db.table("accounts").update({"failed_attempts": attempts, "is_locked": True}).eq("account_no", ac_no).execute()
+                db.table("accounts").update({
+                    "failed_attempts": attempts,
+                    "is_locked": True
+                }).eq("account_no", ac_no).execute()
             except:
                 pass
-            self.log_event(ac_no, "account_locked", "3 wrong attempts", request)
+
+            self.log_event(db, ac_no, "account_locked", "3 wrong attempts", request)
             return False, "Account locked after 3 wrong PIN attempts."
 
         try:
-            self.db.table("accounts").update({"failed_attempts": attempts}).eq("account_no", ac_no).execute()
+            db.table("accounts").update({"failed_attempts": attempts}).eq("account_no", ac_no).execute()
         except:
             pass
 
-        self.log_event(ac_no, "pin_failed", f"Wrong PIN, {3-attempts} tries left", request)
+        self.log_event(db, ac_no, "pin_failed", f"Wrong PIN, {3-attempts} tries left", request)
         return False, f"Wrong PIN. {3 - attempts} tries left."
